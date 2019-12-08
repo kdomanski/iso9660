@@ -66,7 +66,7 @@ func main() {
     log.Fatalf("failed to create file: %s", err)
   }
 
-  err = writer.WriteTo(f)
+  err = writer.WriteTo(outputFile)
   if err != nil {
     log.Fatalf("failed to write ISO image: %s", err)
   }
