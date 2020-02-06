@@ -104,7 +104,7 @@ func TestWriter(t *testing.T) {
 
 	imageFileName := f.Name()
 
-	err = w.WriteTo(f)
+	err = w.WriteTo(f, "testvolume")
 	assert.NoError(t, err)
 
 	f.Close() // nolint: errcheck

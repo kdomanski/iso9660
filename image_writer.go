@@ -410,7 +410,7 @@ func (wc *writeContext) writeAll() error {
 	return nil
 }
 
-func (iw *ImageWriter) WriteTo(wa io.WriterAt) error {
+func (iw *ImageWriter) WriteTo(wa io.WriterAt, volumeIdentifier string) error {
 	buffer := make([]byte, sectorSize)
 	var err error
 
@@ -456,7 +456,7 @@ func (iw *ImageWriter) WriteTo(wa io.WriterAt) error {
 		},
 		Primary: &PrimaryVolumeDescriptorBody{
 			SystemIdentifier:              runtime.GOOS,
-			VolumeIdentifier:              "",
+			VolumeIdentifier:              volumeIdentifier,
 			VolumeSpaceSize:               int32(wc.freeSectorPointer),
 			VolumeSetSize:                 1,
 			VolumeSequenceNumber:          1,
