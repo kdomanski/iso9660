@@ -9,7 +9,7 @@ Joliet and Rock Ridge extensions are not supported.
 
 ### Extracting an ISO
 
-```
+```go
 package main
 
 import (
@@ -33,7 +33,7 @@ func main() {
 
 ### Creating an ISO
 
-```
+```go
 package main
 
 import (
