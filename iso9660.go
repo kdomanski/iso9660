@@ -30,6 +30,9 @@ const (
 
 	aCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_!\"%&'()*+,-./:;<=>?"
 	dCharacters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"
+	// ECMA-119 7.4.2.2 defines d1-characters as
+	// "subject to agreement between the originator and the recipient of the volume".
+	d1Characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_!\"%&'()*+,-./:;<=>?"
 )
 
 const (

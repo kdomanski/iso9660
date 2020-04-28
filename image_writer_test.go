@@ -18,15 +18,15 @@ func TestMangleDirectoryName(t *testing.T) {
 	}{
 		{
 			input:  "ThisStringIsFarTooLongToBeWritten",
-			output: "THISSTRINGISFARTOOLONGTOBEWRITT",
+			output: "thisstringisfartoolongtobewritt",
 		},
 		{
 			input:  "ThisStringHasUnicodeCharacterŁ",
-			output: "THISSTRINGHASUNICODECHARACTER__",
+			output: "thisstringhasunicodecharacter__",
 		},
 		{
 			input:  "ThisStringHasItByteBeforeThEndŁ",
-			output: "THISSTRINGHASITBYTEBEFORETHEND_",
+			output: "thisstringhasitbytebeforethend_",
 		},
 	} {
 		t.Run(testcase.input, func(t *testing.T) {
@@ -43,19 +43,19 @@ func TestMangleFileName(t *testing.T) {
 	}{
 		{
 			input:  "ThisStringIsFarTooLongToBeWritten",
-			output: "THISSTRINGISFARTOOLONGTOBEWR;1",
+			output: "thisstringisfartoolongtobewr;1",
 		},
 		{
 			input:  "ThisStringHasUnicodeCharacŁ",
-			output: "THISSTRINGHASUNICODECHARAC__;1",
+			output: "thisstringhasunicodecharac__;1",
 		},
 		{
 			input:  "ThisStringHasAFileExtensionAndItIsVery.Long",
-			output: "THISSTRINGHASAFILEEXTEN.LONG;1",
+			output: "thisstringhasafileexten.long;1",
 		},
 		{
 			input:  "ThisStringHasAFileExtensionThats.FarTooLong",
-			output: "THISSTRINGHASAFILEE.FARTOOLO;1",
+			output: "thisstringhasafilee.fartoolo;1",
 		},
 	} {
 		t.Run(testcase.input, func(t *testing.T) {
@@ -72,7 +72,7 @@ func TestWriterStaging(t *testing.T) {
 
 	testFileContents := "hrh2309hr320h"
 	testFilePath := "FarTooLongFilePathThatWillBeTrimmed/dirø1/somefile.dat"
-	testFileMangledPath := "FARTOOLONGFILEPATHTHATWILLBETRI/DIR__1/SOMEFILE.DAT;1"
+	testFileMangledPath := "fartoolongfilepaththatwillbetri/dir__1/somefile.dat;1"
 
 	r := strings.NewReader(testFileContents)
 	err = w.AddFile(r, testFilePath)
@@ -89,7 +89,7 @@ func TestWriter(t *testing.T) {
 	assert.NoError(t, err)
 	defer w.Cleanup() // nolint: errcheck
 
-	err = w.AddFile(strings.NewReader("hrh2309hr320h"), "someDirectoryPath/dir1/somefile.dat")
+	err = w.AddFile(strings.NewReader("hrh2309hr320h"), "someDirectory-Path/dir1/somefile.dat")
 	assert.NoError(t, err)
 
 	largeFileData, err := ioutil.ReadFile("fixtures/test.iso_source/dir2/large.txt")
@@ -121,12 +121,12 @@ func TestWriter(t *testing.T) {
 	children, err := root.GetChildren()
 	assert.NoError(t, err)
 	assert.Len(t, children, 2)
-	assert.Equal(t, "ANOTHERDIR", children[0].Name())
+	assert.Equal(t, "anotherdir", children[0].Name())
 
 	children, err = children[0].GetChildren()
 	assert.NoError(t, err)
 	assert.Len(t, children, 1)
-	assert.Equal(t, "LARGE.TXT", children[0].Name())
+	assert.Equal(t, "large.txt", children[0].Name())
 
 	readData, err := ioutil.ReadAll(children[0].Reader())
 	assert.NoError(t, err)

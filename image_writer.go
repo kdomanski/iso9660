@@ -118,14 +118,14 @@ func mangleFileName(input string) string {
 	}
 
 	// enough characters for the `.ignition` extension
-	extension = mangleDString(extension, 8)
+	extension = mangleD1String(extension, 8)
 
 	maxRemainingFilenameLength := primaryVolumeFileIdentifierMaxLength - (1 + len(version))
 	if len(extension) > 0 {
 		maxRemainingFilenameLength -= (1 + len(extension))
 	}
 
-	filename = mangleDString(filename, maxRemainingFilenameLength)
+	filename = mangleD1String(filename, maxRemainingFilenameLength)
 
 	if len(extension) > 0 {
 		return filename + "." + extension + ";" + version
@@ -136,16 +136,16 @@ func mangleFileName(input string) string {
 
 // See ECMA-119 7.6
 func mangleDirectoryName(input string) string {
-	return mangleDString(input, primaryVolumeDirectoryIdentifierMaxLength)
+	return mangleD1String(input, primaryVolumeDirectoryIdentifierMaxLength)
 }
 
-func mangleDString(input string, maxCharacters int) string {
+func mangleD1String(input string, maxCharacters int) string {
 	input = strings.ToUpper(input)
 
 	var mangledString string
 	for i := 0; i < len(input) && i < maxCharacters; i++ {
 		r := rune(input[i])
-		if strings.ContainsRune(dCharacters, r) {
+		if strings.ContainsRune(d1Characters, r) {
 			mangledString += string(r)
 		} else {
 			mangledString += "_"
