@@ -105,7 +105,8 @@ func splitPath(input string) []string {
 
 // See ECMA-119 7.5
 func mangleFileName(input string) string {
-	input = strings.ToUpper(input)
+	// https://github.com/torvalds/linux/blob/v5.6/fs/isofs/dir.c#L29
+	input = strings.ToLower(input)
 	split := strings.Split(input, ".")
 
 	version := "1"
@@ -140,7 +141,8 @@ func mangleDirectoryName(input string) string {
 }
 
 func mangleD1String(input string, maxCharacters int) string {
-	input = strings.ToUpper(input)
+	// https://github.com/torvalds/linux/blob/v5.6/fs/isofs/dir.c#L29
+	input = strings.ToLower(input)
 
 	var mangledString string
 	for i := 0; i < len(input) && i < maxCharacters; i++ {
