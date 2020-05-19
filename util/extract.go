@@ -34,7 +34,7 @@ func extract(f *iso9660.File, targetPath string) error {
 		if err == nil {
 			defer existing.Close()
 			s, err := existing.Stat()
-			if err == nil {
+			if err != nil {
 				return err
 			}
 
