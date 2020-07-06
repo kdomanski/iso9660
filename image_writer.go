@@ -172,7 +172,7 @@ func calculateDirChildrenSectors(path string) (uint32, error) {
 		entryLength := uint32(33 + identifierLen + idPaddingLen)
 
 		if currentSectorOccupied+entryLength > sectorSize {
-			sectors += 1
+			sectors++
 			currentSectorOccupied = entryLength
 		} else {
 			currentSectorOccupied += entryLength
@@ -180,7 +180,7 @@ func calculateDirChildrenSectors(path string) (uint32, error) {
 	}
 
 	if currentSectorOccupied > 0 {
-		sectors += 1
+		sectors++
 	}
 
 	return sectors, nil
@@ -328,7 +328,7 @@ func (wc *writeContext) processDirectory(dirPath string, ownEntry *DirectoryEntr
 
 			// skip to the next sector
 			writeOffset = 0
-			targetSector += 1
+			targetSector++
 		}
 
 		n, err = wc.wa.WriteAt(data, int64((targetSector*sectorSize)+writeOffset))
@@ -412,6 +412,7 @@ func (wc *writeContext) writeAll() error {
 	return nil
 }
 
+// WriteTo writes the image to the given WriterAt
 func (iw *ImageWriter) WriteTo(wa io.WriterAt, volumeIdentifier string) error {
 	buffer := make([]byte, sectorSize)
 	var err error

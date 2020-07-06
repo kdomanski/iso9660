@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// MarshalString encodes the given string as a byte array padded to the given length
 func MarshalString(s string, padToLength int) []byte {
 	if len(s) > padToLength {
 		s = s[:padToLength]

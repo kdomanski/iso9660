@@ -210,6 +210,7 @@ func (de *DirectoryEntry) MarshalBinary() ([]byte, error) {
 	return data, nil
 }
 
+// Clone creates a copy of the DirectoryEntry
 func (de *DirectoryEntry) Clone() DirectoryEntry {
 	newDE := DirectoryEntry{
 		ExtendedAtributeRecordLength: de.ExtendedAtributeRecordLength,
