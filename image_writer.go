@@ -202,13 +202,17 @@ type writeContext struct {
 	itemsToWrite      *list.List
 }
 
+func (wc *writeContext) allocateSectors(n uint32) uint32 {
+	return atomic.AddUint32(&wc.freeSectorPointer, n) - n
+}
+
 func (wc *writeContext) createDEForRoot() (*DirectoryEntry, error) {
 	extentLengthInSectors, err := calculateDirChildrenSectors(wc.stagingDir)
 	if err != nil {
 		return nil, err
 	}
 
-	extentLocation := atomic.AddUint32(&wc.freeSectorPointer, extentLengthInSectors) - extentLengthInSectors
+	extentLocation := wc.allocateSectors(extentLengthInSectors)
 	de := &DirectoryEntry{
 		ExtendedAtributeRecordLength: 0,
 		ExtentLocation:               int32(extentLocation),
@@ -288,7 +292,7 @@ func (wc *writeContext) processDirectory(dirPath string, ownEntry *DirectoryEntr
 			fileFlags = 0
 		}
 
-		extentLocation := atomic.AddUint32(&wc.freeSectorPointer, extentLengthInSectors) - extentLengthInSectors
+		extentLocation := wc.allocateSectors(extentLengthInSectors)
 		de := &DirectoryEntry{
 			ExtendedAtributeRecordLength: 0,
 			ExtentLocation:               int32(extentLocation),
