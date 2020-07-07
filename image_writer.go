@@ -157,6 +157,8 @@ func mangleD1String(input string, maxCharacters int) string {
 	return mangledString
 }
 
+// calculateDirChildrenSectors calculates the total mashalled size of all DirectoryEntries
+// within a directory. The size of each entry depends of the length of the filename.
 func calculateDirChildrenSectors(path string) (uint32, error) {
 	contents, err := ioutil.ReadDir(path)
 	if err != nil {
