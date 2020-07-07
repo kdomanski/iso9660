@@ -1,6 +1,7 @@
 package iso9660
 
 import (
+	"bytes"
 	"container/list"
 	"errors"
 	"fmt"
@@ -322,14 +323,14 @@ func (wc *writeContext) processDirectory(dirPath string, ownEntry *DirectoryEntr
 			return err
 		}
 
-		if writeOffset+uint32(len(data)) > sectorSize {
-			// unless we reached the exact end of the sector
-			if writeOffset < sectorSize {
-				// write the 0 size marker, telling the reader that the next entry is on the next sector
-				n, err = wc.wa.WriteAt([]byte{}, int64((targetSector*sectorSize)+writeOffset))
-				if err != nil {
-					return err
-				}
+		remainingSectorSpace := sectorSize - (writeOffset % sectorSize)
+		if remainingSectorSpace < uint32(len(data)) {
+			// ECMA-119 6.8.1.1 If the body of the next descriptor won't fit into the sector,
+			// we fill the rest of space with zeros and skip to the next sector.
+			zeros := bytes.Repeat([]byte{0}, int(remainingSectorSpace))
+			_, err = wc.wa.WriteAt(zeros, int64((targetSector*sectorSize)+writeOffset))
+			if err != nil {
+				return err
 			}
 
 			// skip to the next sector
@@ -342,15 +343,6 @@ func (wc *writeContext) processDirectory(dirPath string, ownEntry *DirectoryEntr
 			return err
 		}
 		writeOffset += uint32(n)
-	}
-
-	// unless we reached the exact end of the sector
-	if writeOffset < sectorSize {
-		// write the 0 size marker, telling the reader that the next entry is on the next sector
-		n, err = wc.wa.WriteAt([]byte{}, int64((targetSector*sectorSize)+writeOffset))
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
