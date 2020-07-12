@@ -87,7 +87,11 @@ func TestWriterStaging(t *testing.T) {
 func TestWriter(t *testing.T) {
 	w, err := NewWriter()
 	assert.NoError(t, err)
-	defer w.Cleanup() // nolint: errcheck
+	defer func() {
+		if cleanupErr := w.Cleanup(); cleanupErr != nil {
+			t.Fatalf("failed to cleanup writer: %v", cleanupErr)
+		}
+	}()
 
 	err = w.AddFile(strings.NewReader("hrh2309hr320h"), "someDirectory-Path/dir1/somefile.dat")
 	assert.NoError(t, err)
