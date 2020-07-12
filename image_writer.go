@@ -199,7 +199,6 @@ func fileLengthToSectors(l uint32) uint32 {
 
 type writeContext struct {
 	stagingDir        string
-	wa                io.WriterAt
 	timestamp         RecordingTimestamp
 	freeSectorPointer uint32
 }
@@ -308,8 +307,8 @@ func (wc *writeContext) scanDirectory(item *itemToWrite, dirPath string, ownEntr
 }
 
 // processDirectory writes a given directory item to the destination sectors
-func (wc *writeContext) processDirectory(children []*DirectoryEntry, ownEntry *DirectoryEntry, parentEntery *DirectoryEntry, targetSector uint32) error {
-	var writeOffset uint32
+func processDirectory(w io.Writer, children []*DirectoryEntry, ownEntry *DirectoryEntry, parentEntery *DirectoryEntry) error {
+	var currentOffset uint32
 
 	currentDE := ownEntry.Clone()
 	currentDE.Identifier = string([]byte{0})
@@ -325,16 +324,16 @@ func (wc *writeContext) processDirectory(children []*DirectoryEntry, ownEntry *D
 		return err
 	}
 
-	n, err := wc.wa.WriteAt(currentDEData, int64((targetSector*sectorSize)+writeOffset))
+	n, err := w.Write(currentDEData)
 	if err != nil {
 		return err
 	}
-	writeOffset += uint32(n)
-	n, err = wc.wa.WriteAt(parentDEData, int64((targetSector*sectorSize)+writeOffset))
+	currentOffset += uint32(n)
+	n, err = w.Write(parentDEData)
 	if err != nil {
 		return err
 	}
-	writeOffset += uint32(n)
+	currentOffset += uint32(n)
 
 	for _, childDescriptor := range children {
 		data, err := childDescriptor.MarshalBinary()
@@ -342,32 +341,41 @@ func (wc *writeContext) processDirectory(children []*DirectoryEntry, ownEntry *D
 			return err
 		}
 
-		remainingSectorSpace := sectorSize - (writeOffset % sectorSize)
+		remainingSectorSpace := sectorSize - (currentOffset % sectorSize)
 		if remainingSectorSpace < uint32(len(data)) {
 			// ECMA-119 6.8.1.1 If the body of the next descriptor won't fit into the sector,
 			// we fill the rest of space with zeros and skip to the next sector.
 			zeros := bytes.Repeat([]byte{0}, int(remainingSectorSpace))
-			_, err = wc.wa.WriteAt(zeros, int64((targetSector*sectorSize)+writeOffset))
+			_, err = w.Write(zeros)
 			if err != nil {
 				return err
 			}
 
 			// skip to the next sector
-			writeOffset = 0
-			targetSector++
+			currentOffset = 0
 		}
 
-		n, err = wc.wa.WriteAt(data, int64((targetSector*sectorSize)+writeOffset))
+		n, err = w.Write(data)
 		if err != nil {
 			return err
 		}
-		writeOffset += uint32(n)
+		currentOffset += uint32(n)
+	}
+
+	// fill with zeros to the end of the sector
+	remainingSectorSpace := sectorSize - (currentOffset % sectorSize)
+	if remainingSectorSpace != 0 {
+		zeros := bytes.Repeat([]byte{0}, int(remainingSectorSpace))
+		_, err = w.Write(zeros)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (wc *writeContext) processFile(dirPath string, targetSector uint32) error {
+func processFile(w io.Writer, dirPath string) error {
 	f, err := os.Open(dirPath)
 	if err != nil {
 		return err
@@ -397,13 +405,13 @@ func (wc *writeContext) processFile(dirPath string, targetSector uint32) error {
 			return err
 		}
 
-		if _, err = wc.wa.WriteAt(buffer, int64(targetSector*sectorSize)); err != nil {
+		if _, err = w.Write(buffer); err != nil {
 			return err
 		}
 
-		targetSector++
 		bytesLeft -= toRead
 	}
+	// We already write a whole sector-sized buffer, so there's need to fill with zeroes.
 
 	return nil
 }
@@ -431,19 +439,18 @@ func (wc *writeContext) traverseStagingDir(rootItem itemToWrite) (*list.List, er
 	return itemsToWrite, nil
 }
 
-func (wc *writeContext) writeAll(itemsToWrite *list.List) error {
+func writeAll(w io.Writer, itemsToWrite *list.List) error {
 	for item := itemsToWrite.Front(); item != nil; item = item.Next() {
 		it := item.Value.(itemToWrite)
 		var err error
 		if it.isDirectory {
-			err = wc.processDirectory(it.childrenEntries, it.ownEntry, it.parentEntery, it.targetSector)
+			err = processDirectory(w, it.childrenEntries, it.ownEntry, it.parentEntery)
 		} else {
-			err = wc.processFile(it.dirPath, it.targetSector)
+			err = processFile(w, it.dirPath)
 		}
 
 		if err != nil {
-			relativePath := it.dirPath[len(wc.stagingDir):]
-			return fmt.Errorf("processing %s: %s", relativePath, err)
+			return err
 		}
 	}
 
@@ -451,22 +458,14 @@ func (wc *writeContext) writeAll(itemsToWrite *list.List) error {
 }
 
 // WriteTo writes the image to the given WriterAt
-func (iw *ImageWriter) WriteTo(wa io.WriterAt, volumeIdentifier string) error {
+func (iw *ImageWriter) WriteTo(w io.Writer, volumeIdentifier string) error {
 	buffer := make([]byte, sectorSize)
 	var err error
-
-	// write 16 sectors of zeroes
-	for i := uint32(0); i < 16; i++ {
-		if _, err = wa.WriteAt(buffer, int64(sectorSize*i)); err != nil {
-			return err
-		}
-	}
 
 	now := time.Now()
 
 	wc := writeContext{
 		stagingDir:        iw.stagingDir,
-		wa:                wa,
 		timestamp:         RecordingTimestamp{},
 		freeSectorPointer: 18, // system area (16) + 2 volume descriptors
 	}
@@ -487,9 +486,6 @@ func (iw *ImageWriter) WriteTo(wa io.WriterAt, volumeIdentifier string) error {
 	itemsToWrite, err := wc.traverseStagingDir(rootItem)
 	if err != nil {
 		return fmt.Errorf("tranversing staging directory: %s", err)
-	}
-	if err = wc.writeAll(itemsToWrite); err != nil {
-		return fmt.Errorf("writing files: %s", err)
 	}
 
 	pvd := volumeDescriptor{
@@ -526,12 +522,6 @@ func (iw *ImageWriter) WriteTo(wa io.WriterAt, volumeIdentifier string) error {
 			ApplicationUsed:               [512]byte{},
 		},
 	}
-	if buffer, err = pvd.MarshalBinary(); err != nil {
-		return err
-	}
-	if _, err = wa.WriteAt(buffer, int64(sectorSize*16)); err != nil {
-		return err
-	}
 
 	terminator := volumeDescriptor{
 		Header: volumeDescriptorHeader{
@@ -540,11 +530,31 @@ func (iw *ImageWriter) WriteTo(wa io.WriterAt, volumeIdentifier string) error {
 			Version:    1,
 		},
 	}
+
+	// write 16 sectors of zeroes
+	zeroSector := bytes.Repeat([]byte{0}, int(sectorSize))
+	for i := uint32(0); i < 16; i++ {
+		if _, err = w.Write(zeroSector); err != nil {
+			return err
+		}
+	}
+
+	if buffer, err = pvd.MarshalBinary(); err != nil {
+		return err
+	}
+	if _, err = w.Write(buffer); err != nil {
+		return err
+	}
+
 	if buffer, err = terminator.MarshalBinary(); err != nil {
 		return err
 	}
-	if _, err = wa.WriteAt(buffer, int64(sectorSize*17)); err != nil {
+	if _, err = w.Write(buffer); err != nil {
 		return err
+	}
+
+	if err = writeAll(w, itemsToWrite); err != nil {
+		return fmt.Errorf("writing files: %s", err)
 	}
 
 	return nil
