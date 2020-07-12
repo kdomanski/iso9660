@@ -1,3 +1,5 @@
+// +build !integration
+
 package iso9660
 
 import (

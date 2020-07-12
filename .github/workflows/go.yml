@@ -34,3 +34,10 @@ jobs:
       env:
         # needed by Go v1.12
         GO111MODULE: on
+
+    - name: Integration test
+      # The test need sudo to be able to mount/umount
+      run: sudo go test -v --tags=integration .
+      env:
+        # needed by Go v1.12
+        GO111MODULE: on
