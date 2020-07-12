@@ -202,7 +202,6 @@ type writeContext struct {
 	wa                io.WriterAt
 	timestamp         RecordingTimestamp
 	freeSectorPointer uint32
-	itemsToWrite      *list.List
 }
 
 func (wc *writeContext) allocateSectors(n uint32) uint32 {
@@ -232,19 +231,84 @@ func (wc *writeContext) createDEForRoot() (*DirectoryEntry, error) {
 }
 
 type itemToWrite struct {
-	isDirectory  bool
-	dirPath      string
-	ownEntry     *DirectoryEntry
-	parentEntery *DirectoryEntry
-	targetSector uint32
+	isDirectory     bool
+	dirPath         string
+	ownEntry        *DirectoryEntry
+	parentEntery    *DirectoryEntry
+	childrenEntries []*DirectoryEntry
+	targetSector    uint32
 }
 
-func (wc *writeContext) processDirectory(dirPath string, ownEntry *DirectoryEntry, parentEntery *DirectoryEntry, targetSector uint32) error {
+// scanDirectory reads the directory's contents and adds them to the queue, as well as stores all their DirectoryEntries in the item,
+// because we'll need them to write this item's descriptor.
+func (wc *writeContext) scanDirectory(item *itemToWrite, dirPath string, ownEntry *DirectoryEntry, parentEntery *DirectoryEntry, targetSector uint32) (*list.List, error) {
 	contents, err := ioutil.ReadDir(dirPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	itemsToWrite := list.New()
+
+	for _, c := range contents {
+		var (
+			fileFlags             byte
+			extentLengthInSectors uint32
+			extentLength          uint32
+		)
+		if c.IsDir() {
+			extentLengthInSectors, err = calculateDirChildrenSectors(path.Join(dirPath, c.Name()))
+			if err != nil {
+				return nil, err
+			}
+			fileFlags = dirFlagDir
+			extentLength = extentLengthInSectors * sectorSize
+		} else {
+			if c.Size() > int64(math.MaxUint32) {
+				return nil, ErrFileTooLarge
+			}
+			extentLength = uint32(c.Size())
+			extentLengthInSectors = fileLengthToSectors(extentLength)
+
+			fileFlags = 0
+		}
+
+		extentLocation := wc.allocateSectors(extentLengthInSectors)
+		de := &DirectoryEntry{
+			ExtendedAtributeRecordLength: 0,
+			ExtentLocation:               int32(extentLocation),
+			ExtentLength:                 int32(extentLength),
+			RecordingDateTime:            wc.timestamp,
+			FileFlags:                    fileFlags,
+			FileUnitSize:                 0, // 0 for non-interleaved write
+			InterleaveGap:                0, // not interleaved
+			VolumeSequenceNumber:         1, // we only have one volume
+			Identifier:                   c.Name(),
+			SystemUse:                    []byte{},
+		}
+
+		// Add this child's descriptor to the currently scanned directory's list of children,
+		// so that later we can use it for writing the current item.
+		if item.childrenEntries == nil {
+			item.childrenEntries = []*DirectoryEntry{de}
+		} else {
+			item.childrenEntries = append(item.childrenEntries, de)
+		}
+
+		// queue this child for processing
+		itemsToWrite.PushBack(itemToWrite{
+			isDirectory:  c.IsDir(),
+			dirPath:      path.Join(dirPath, c.Name()),
+			ownEntry:     de,
+			parentEntery: ownEntry,
+			targetSector: uint32(de.ExtentLocation),
+		})
+	}
+
+	return itemsToWrite, nil
+}
+
+// processDirectory writes a given directory item to the destination sectors
+func (wc *writeContext) processDirectory(children []*DirectoryEntry, ownEntry *DirectoryEntry, parentEntery *DirectoryEntry, targetSector uint32) error {
 	var writeOffset uint32
 
 	currentDE := ownEntry.Clone()
@@ -272,53 +336,8 @@ func (wc *writeContext) processDirectory(dirPath string, ownEntry *DirectoryEntr
 	}
 	writeOffset += uint32(n)
 
-	for _, c := range contents {
-		var (
-			fileFlags             byte
-			extentLengthInSectors uint32
-			extentLength          uint32
-		)
-		if c.IsDir() {
-			extentLengthInSectors, err = calculateDirChildrenSectors(path.Join(dirPath, c.Name()))
-			if err != nil {
-				return err
-			}
-			fileFlags = dirFlagDir
-			extentLength = extentLengthInSectors * sectorSize
-		} else {
-			if c.Size() > int64(math.MaxUint32) {
-				return ErrFileTooLarge
-			}
-			extentLength = uint32(c.Size())
-			extentLengthInSectors = fileLengthToSectors(extentLength)
-
-			fileFlags = 0
-		}
-
-		extentLocation := wc.allocateSectors(extentLengthInSectors)
-		de := &DirectoryEntry{
-			ExtendedAtributeRecordLength: 0,
-			ExtentLocation:               int32(extentLocation),
-			ExtentLength:                 int32(extentLength),
-			RecordingDateTime:            wc.timestamp,
-			FileFlags:                    fileFlags,
-			FileUnitSize:                 0, // 0 for non-interleaved write
-			InterleaveGap:                0, // not interleaved
-			VolumeSequenceNumber:         1, // we only have one volume
-			Identifier:                   c.Name(),
-			SystemUse:                    []byte{},
-		}
-
-		// queue this child for processing
-		wc.itemsToWrite.PushBack(itemToWrite{
-			isDirectory:  c.IsDir(),
-			dirPath:      path.Join(dirPath, c.Name()),
-			ownEntry:     de,
-			parentEntery: ownEntry,
-			targetSector: uint32(de.ExtentLocation),
-		})
-
-		data, err := de.MarshalBinary()
+	for _, childDescriptor := range children {
+		data, err := childDescriptor.MarshalBinary()
 		if err != nil {
 			return err
 		}
@@ -389,12 +408,35 @@ func (wc *writeContext) processFile(dirPath string, targetSector uint32) error {
 	return nil
 }
 
-func (wc *writeContext) writeAll() error {
-	for item := wc.itemsToWrite.Front(); wc.itemsToWrite.Len() > 0; item = wc.itemsToWrite.Front() {
+// traverseStagingDir creates a new queue of items to write by traversing the staging directory
+func (wc *writeContext) traverseStagingDir(rootItem itemToWrite) (*list.List, error) {
+	itemsToWrite := list.New()
+	itemsToWrite.PushBack(rootItem)
+
+	for item := itemsToWrite.Front(); item != nil; item = item.Next() {
+		it := item.Value.(itemToWrite)
+
+		if it.isDirectory {
+			newItems, err := wc.scanDirectory(&it, it.dirPath, it.ownEntry, it.parentEntery, it.targetSector)
+			if err != nil {
+				relativePath := it.dirPath[len(wc.stagingDir):]
+				return nil, fmt.Errorf("processing %s: %s", relativePath, err)
+			}
+			itemsToWrite.PushBackList(newItems)
+		}
+
+		item.Value = it
+	}
+
+	return itemsToWrite, nil
+}
+
+func (wc *writeContext) writeAll(itemsToWrite *list.List) error {
+	for item := itemsToWrite.Front(); item != nil; item = item.Next() {
 		it := item.Value.(itemToWrite)
 		var err error
 		if it.isDirectory {
-			err = wc.processDirectory(it.dirPath, it.ownEntry, it.parentEntery, it.targetSector)
+			err = wc.processDirectory(it.childrenEntries, it.ownEntry, it.parentEntery, it.targetSector)
 		} else {
 			err = wc.processFile(it.dirPath, it.targetSector)
 		}
@@ -403,8 +445,6 @@ func (wc *writeContext) writeAll() error {
 			relativePath := it.dirPath[len(wc.stagingDir):]
 			return fmt.Errorf("processing %s: %s", relativePath, err)
 		}
-
-		wc.itemsToWrite.Remove(item)
 	}
 
 	return nil
@@ -429,7 +469,6 @@ func (iw *ImageWriter) WriteTo(wa io.WriterAt, volumeIdentifier string) error {
 		wa:                wa,
 		timestamp:         RecordingTimestamp{},
 		freeSectorPointer: 18, // system area (16) + 2 volume descriptors
-		itemsToWrite:      list.New(),
 	}
 
 	rootDE, err := wc.createDEForRoot()
@@ -437,15 +476,19 @@ func (iw *ImageWriter) WriteTo(wa io.WriterAt, volumeIdentifier string) error {
 		return fmt.Errorf("creating root directory descriptor: %s", err)
 	}
 
-	wc.itemsToWrite.PushBack(itemToWrite{
+	rootItem := itemToWrite{
 		isDirectory:  true,
 		dirPath:      wc.stagingDir,
 		ownEntry:     rootDE,
 		parentEntery: rootDE,
 		targetSector: uint32(rootDE.ExtentLocation),
-	})
+	}
 
-	if err = wc.writeAll(); err != nil {
+	itemsToWrite, err := wc.traverseStagingDir(rootItem)
+	if err != nil {
+		return fmt.Errorf("tranversing staging directory: %s", err)
+	}
+	if err = wc.writeAll(itemsToWrite); err != nil {
 		return fmt.Errorf("writing files: %s", err)
 	}
 
