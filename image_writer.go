@@ -307,12 +307,12 @@ func (wc *writeContext) scanDirectory(item *itemToWrite, dirPath string, ownEntr
 }
 
 // processDirectory writes a given directory item to the destination sectors
-func processDirectory(w io.Writer, children []*DirectoryEntry, ownEntry *DirectoryEntry, parentEntery *DirectoryEntry) error {
+func processDirectory(w io.Writer, children []*DirectoryEntry, ownEntry *DirectoryEntry, parentEntry *DirectoryEntry) error {
 	var currentOffset uint32
 
 	currentDE := ownEntry.Clone()
 	currentDE.Identifier = string([]byte{0})
-	parentDE := ownEntry.Clone()
+	parentDE := parentEntry.Clone()
 	parentDE.Identifier = string([]byte{1})
 
 	currentDEData, err := currentDE.MarshalBinary()
