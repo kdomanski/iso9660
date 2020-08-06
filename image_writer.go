@@ -79,6 +79,32 @@ func (iw *ImageWriter) AddFile(data io.Reader, filePath string) error {
 	return err
 }
 
+// AddLocalFile adds a file identified by its path to the ImageWriter's staging area.
+func (iw *ImageWriter) AddLocalFile(origin, target string) error {
+	directoryPath, fileName := manglePath(target)
+
+	if err := os.MkdirAll(path.Join(iw.stagingDir, directoryPath), 0755); err != nil {
+		return err
+	}
+
+	// try to hardlink file to staging area before copying.
+	stagedFile := path.Join(iw.stagingDir, directoryPath, fileName)
+	os.Remove(stagedFile)
+
+	if err := os.Link(origin, stagedFile); err == nil {
+		return nil
+	}
+
+	f, err := os.Open(origin)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	return iw.AddFile(f, target)
+}
+
 func manglePath(input string) (string, string) {
 	nonEmptySegments := splitPath(input)
 
