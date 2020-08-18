@@ -89,7 +89,9 @@ func (iw *ImageWriter) AddLocalFile(origin, target string) error {
 
 	// try to hardlink file to staging area before copying.
 	stagedFile := path.Join(iw.stagingDir, directoryPath, fileName)
-	os.Remove(stagedFile)
+	if err := os.Remove(stagedFile); err != nil && !os.IsNotExist(err) {
+		return err
+	}
 
 	if err := os.Link(origin, stagedFile); err == nil {
 		return nil
