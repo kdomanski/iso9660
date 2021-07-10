@@ -100,6 +100,11 @@ func (f *File) Name() string {
 	// assume only only one '.'
 	splitFileIdentifier := strings.Split(fileIdentifier, ".")
 
+	// there's no dot in the name, thus no extension
+	if len(splitFileIdentifier) == 1 {
+		return splitFileIdentifier[0]
+	}
+
 	// extension is empty, return just the name without a dot
 	if len(splitFileIdentifier[1]) == 0 {
 		return splitFileIdentifier[0]
