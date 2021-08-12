@@ -21,5 +21,5 @@ func main() {
 		log.Fatal(err)
 	}
 
-	wr.WriteTo(os.Stdout, "wrappedid")
+	wr.WriteTo(os.Stdout, "github.com/kdomanski/iso9660")
 }
