@@ -34,4 +34,7 @@ jobs:
 
     - name: Integration test
       # The test need sudo to be able to mount/umount
-      run: sudo go test -v --tags=integration .
+      run: sudo go test -v --tags=integration -coverprofile=coverage.txt -covermode=atomic .
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2
