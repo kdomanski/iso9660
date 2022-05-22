@@ -1,6 +1,7 @@
 package iso9660
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"path"
@@ -98,7 +99,7 @@ func TestWriter(t *testing.T) {
 	largeFileData, err := ioutil.ReadFile("fixtures/test.iso_source/dir2/large.txt")
 	assert.NoError(t, err)
 
-	err = w.AddLocalFile("fixtures/test.iso_source/dir2/large.txt", "anotherDir/large.txt")
+	err = w.AddFile(bytes.NewReader(largeFileData), "anotherDir/large.txt")
 	assert.NoError(t, err)
 
 	f, err := ioutil.TempFile(os.TempDir(), "iso9660_golang_test")
