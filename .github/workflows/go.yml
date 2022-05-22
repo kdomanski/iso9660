@@ -29,9 +29,6 @@ jobs:
     - name: Build
       run: go build -v .
 
-    - name: Test
-      run: go test -v .
-
     - name: Integration test
       # The test need sudo to be able to mount/umount
       run: sudo go test -v --tags=integration -coverprofile=coverage.txt -covermode=atomic .
