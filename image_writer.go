@@ -10,6 +10,7 @@ import (
 	"math"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync/atomic"
@@ -105,6 +106,42 @@ func (iw *ImageWriter) AddLocalFile(origin, target string) error {
 	defer f.Close()
 
 	return iw.AddFile(f, target)
+}
+
+func ensureIsDirectory(path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	fileinfo, err := f.Stat()
+	if err != nil {
+		return err
+	}
+
+	if !fileinfo.IsDir() {
+		return fmt.Errorf("%q is not a directory", path)
+	}
+
+	return nil
+}
+
+// AddLocalDirectory adds a directory recursively to the ImageWriter's staging area.
+func (iw *ImageWriter) AddLocalDirectory(origin, target string) error {
+	if err := ensureIsDirectory(origin); err != nil {
+		return err
+	}
+
+	walkfn := func(path string, info os.FileInfo, err error) error {
+		if info.IsDir() {
+			return nil
+		}
+		relPath := path[len(origin):] // We need the path to be relative to the origin.
+		return iw.AddLocalFile(path, filepath.Join(target, relPath))
+	}
+
+	return filepath.Walk(origin, walkfn)
 }
 
 func manglePath(input string) (string, string) {

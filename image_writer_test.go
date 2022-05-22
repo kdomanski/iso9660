@@ -1,7 +1,6 @@
 package iso9660
 
 import (
-	"bytes"
 	"io/ioutil"
 	"os"
 	"path"
@@ -84,7 +83,7 @@ func TestWriterStaging(t *testing.T) {
 	assert.Equal(t, testFileContents, string(readData))
 }
 
-func TestWriter(t *testing.T) {
+func TestWriterAddLocalDirectory(t *testing.T) {
 	w, err := NewWriter()
 	assert.NoError(t, err)
 	defer func() {
@@ -93,13 +92,7 @@ func TestWriter(t *testing.T) {
 		}
 	}()
 
-	err = w.AddFile(strings.NewReader("hrh2309hr320h"), "someDirectory-Path/dir1/somefile.dat")
-	assert.NoError(t, err)
-
-	largeFileData, err := ioutil.ReadFile("fixtures/test.iso_source/dir2/large.txt")
-	assert.NoError(t, err)
-
-	err = w.AddFile(bytes.NewReader(largeFileData), "anotherDir/large.txt")
+	err = w.AddLocalDirectory("fixtures/test.iso_source", "foo")
 	assert.NoError(t, err)
 
 	f, err := ioutil.TempFile(os.TempDir(), "iso9660_golang_test")
@@ -124,16 +117,45 @@ func TestWriter(t *testing.T) {
 
 	children, err := root.GetChildren()
 	assert.NoError(t, err)
-	assert.Len(t, children, 2)
-	assert.Equal(t, "anotherdir", children[0].Name())
+	assert.Len(t, children, 1)
+	assert.Equal(t, "foo", children[0].Name())
 
 	children, err = children[0].GetChildren()
 	assert.NoError(t, err)
-	assert.Len(t, children, 1)
-	assert.Equal(t, "large.txt", children[0].Name())
+	assert.Len(t, children, 4)
+	assert.Equal(t, "dir4", children[3].Name())
 
-	readData, err := ioutil.ReadAll(children[0].Reader())
+	children, err = children[3].GetChildren()
 	assert.NoError(t, err)
+	assert.Len(t, children, 1000)
+}
 
-	assert.Equal(t, largeFileData, readData)
+func TestWriterAddLocalDirectoryNonExisting(t *testing.T) {
+	w, err := NewWriter()
+	assert.NoError(t, err)
+	defer func() {
+		if cleanupErr := w.Cleanup(); cleanupErr != nil {
+			t.Fatalf("failed to cleanup writer: %v", cleanupErr)
+		}
+	}()
+
+	err = w.AddLocalDirectory("/etc/nonexistent", "foo")
+	assert.Error(t, err)
+
+	assert.True(t, os.IsNotExist(err))
+}
+
+func TestWriterAddLocalDirectoryWithFile(t *testing.T) {
+	w, err := NewWriter()
+	assert.NoError(t, err)
+	defer func() {
+		if cleanupErr := w.Cleanup(); cleanupErr != nil {
+			t.Fatalf("failed to cleanup writer: %v", cleanupErr)
+		}
+	}()
+
+	err = w.AddLocalDirectory("/etc/hosts", "foo")
+	assert.Error(t, err)
+
+	assert.False(t, os.IsNotExist(err))
 }
