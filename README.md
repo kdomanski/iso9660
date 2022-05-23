@@ -78,3 +78,72 @@ func main() {
   }
 }
 ```
+
+### Recursively create an ISO image from the given directories
+
+```go
+package main
+
+import (
+  "fmt"
+  "log"
+  "os"
+  "path/filepath"
+  "strings"
+
+  "github.com/kdomanski/iso9660"
+)
+
+func main() {
+  writer, err := iso9660.NewWriter()
+  if err != nil {
+    log.Fatalf("failed to create writer: %s", err)
+  }
+  defer writer.Cleanup()
+
+  isoFile, err := os.OpenFile("C:/output.iso", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
+  if err != nil {
+    log.Fatalf("failed to create file: %s", err)
+  }
+  defer isoFile.Close()
+
+  prefix := "F:\\" // the prefix to remove in the output iso file
+  sourceFolders := []string{"F:\\test1", "F:\\test2"} // the given directories to create an ISO file from
+
+  for _, folderName := range sourceFolders {
+    folderPath := strings.Join([]string{prefix, folderName}, "/")
+
+    walk_err := filepath.Walk(folderPath, func(path string, info os.FileInfo, err error) error {
+      if err != nil {
+        log.Fatalf("walk: %s", err)
+        return err
+      }
+      if info.IsDir() {
+        return nil
+      }
+      outputPath := strings.TrimPrefix(path, prefix) // remove the source drive name
+      fmt.Printf("Adding file: %s\n", outputPath)
+
+      fileToAdd, err := os.Open(path)
+      if err != nil {
+        log.Fatalf("failed to open file: %s", err)
+      }
+      defer fileToAdd.Close()
+
+      err = writer.AddFile(fileToAdd, outputPath)
+      if err != nil {
+        log.Fatalf("failed to add file: %s", err)
+      }
+      return nil
+    })
+    if walk_err != nil {
+      log.Fatalf("%s", walk_err)
+    }
+  }
+
+  err = writer.WriteTo(isoFile, "Test")
+  if err != nil {
+    log.Fatalf("failed to write ISO image: %s", err)
+  }
+}
+```
