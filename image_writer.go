@@ -145,6 +145,8 @@ func (iw *ImageWriter) AddLocalDirectory(origin, target string) error {
 }
 
 func manglePath(input string) (string, string) {
+	input = posixifyPath(input)
+
 	nonEmptySegments := splitPath(input)
 
 	dirSegments := nonEmptySegments[:len(nonEmptySegments)-1]
@@ -156,6 +158,19 @@ func manglePath(input string) (string, string) {
 	name = mangleFileName(name)
 
 	return path.Join(dirSegments...), name
+}
+
+// Converts given path to Posix (replacing \ with /)
+//
+// @param {string} givenPath Path to convert
+//
+// @returns {string} Converted filepath
+//
+func posixifyPath(path string) string {
+	if runtime.GOOS == "windows" {
+		return strings.ReplaceAll(path, "\\", "/")
+	}
+	return path
 }
 
 func splitPath(input string) []string {
