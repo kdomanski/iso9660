@@ -41,6 +41,10 @@ jobs:
       # The test need sudo to be able to mount/umount
       run: sudo go test -v --tags=integration -coverprofile=coverage.txt -covermode=atomic .
 
+    - name: Enable Hyper-V
+      if: matrix.os == 'windows-latest'
+      run: powershell.exe -NonInteractive 'Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All'
+
     - name: Integration test (Windows)
       if: matrix.os == 'windows-latest'
       run: go test -v --tags=integration -coverprofile="coverage.txt" -covermode=atomic .
