@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -60,7 +61,7 @@ func TestWriterAndMount(t *testing.T) {
 	}()
 
 	// execute mount
-	mountCmd := exec.Command("mount", "-t", "iso9660", f.Name(), mountDir)
+	mountCmd := exec.Command("mount", f.Name(), mountDir)
 	output, err := mountCmd.CombinedOutput()
 	assert.NoError(t, err, "failed to mount the ISO image: %v\n%s", err, string(output))
 
@@ -96,7 +97,18 @@ func TestWriterAndMount(t *testing.T) {
 // Identical to TestWriterAndMount, except it uses
 // AddLocalFile to add an existing file.
 func TestWriterAndMountWithAddLocal(t *testing.T) {
-	sampleData, err := ioutil.ReadFile("/etc/issue")
+	var testFile string
+
+	switch runtime.GOOS {
+	case "windows":
+		testFile = `C:\Windows\System32\notepad.exe`
+	case "linux":
+		testFile = "/etc/issue"
+	default:
+		t.Fatalf("unknown OS %s", runtime.GOOS)
+	}
+
+	sampleData, err := ioutil.ReadFile(testFile)
 	assert.NoError(t, err)
 
 	//
@@ -115,7 +127,7 @@ func TestWriterAndMountWithAddLocal(t *testing.T) {
 	// add 1000 files to thoroughly test descriptor writing over sector bounds
 	for i := 0; i < 1000; i++ {
 		path := fmt.Sprintf("firstlevel/dir%d/thirdlevel/file%d.txt", i, i)
-		err = w.AddLocalFile("/etc/issue", path)
+		err = w.AddLocalFile(testFile, path)
 		assert.NoError(t, err)
 	}
 
@@ -141,7 +153,7 @@ func TestWriterAndMountWithAddLocal(t *testing.T) {
 	}()
 
 	// execute mount
-	mountCmd := exec.Command("mount", "-t", "iso9660", f.Name(), mountDir)
+	mountCmd := exec.Command("mount", f.Name(), mountDir)
 	output, err := mountCmd.CombinedOutput()
 	assert.NoError(t, err, "failed to mount the ISO image: %v\n%s", err, string(output))
 

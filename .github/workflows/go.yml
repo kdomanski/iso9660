@@ -9,10 +9,11 @@ jobs:
 
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         go: ['1.16', '1.17', '1.18']
+        os: [ubuntu-latest, windows-latest]
     steps:
 
     - name: Set up Go ${{ matrix.go }}
@@ -25,6 +26,7 @@ jobs:
       uses: actions/checkout@v1
 
     - name: Check formatting
+      if: matrix.os == 'ubuntu-latest'
       run: |
         if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
           gofmt -s -d .
@@ -34,9 +36,14 @@ jobs:
     - name: Build
       run: go build -v .
 
-    - name: Integration test
+    - name: Integration test (Linux)
+      if: matrix.os == 'ubuntu-latest'
       # The test need sudo to be able to mount/umount
       run: sudo go test -v --tags=integration -coverprofile=coverage.txt -covermode=atomic .
+
+    - name: Integration test (Windows)
+      if: matrix.os == 'windows-latest'
+      run: go test -v --tags=integration -coverprofile="coverage.txt" -covermode=atomic .
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v2
