@@ -87,3 +87,26 @@ func TestImageReader(t *testing.T) {
 		assert.Equal(t, "FILE1012", dir4Children[12].Name())
 	}
 }
+
+func TestFile(t *testing.T) {
+	f := File{
+		ra: nil,
+		de: &DirectoryEntry{
+			FileFlags: dirFlagDir,
+		},
+		children: []*File{},
+	}
+
+	assert.Nil(t, f.Reader())
+	assert.Equal(t, os.ModeDir, f.Mode())
+}
+
+func TestImage(t *testing.T) {
+	imageWithoutDescriptors := Image{
+		ra:                nil,
+		volumeDescriptors: []volumeDescriptor{},
+	}
+
+	_, err := imageWithoutDescriptors.RootDir()
+	assert.Error(t, os.ErrNotExist, err)
+}

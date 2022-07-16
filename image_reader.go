@@ -55,7 +55,7 @@ func (i *Image) RootDir() (*File, error) {
 			return &File{de: vd.Primary.RootDirectoryEntry, ra: i.ra, children: nil}, nil
 		}
 	}
-	return nil, fmt.Errorf("no primary volumes found")
+	return nil, os.ErrNotExist
 }
 
 // File is a os.FileInfo-compatible wrapper around an ISO9660 directory entry
