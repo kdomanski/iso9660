@@ -1,5 +1,5 @@
 ## iso9660
-[![GoDoc](https://godoc.org/github.com/kdomanski/iso9660?status.svg)](https://godoc.org/github.com/kdomanski/iso9660)
+[![Go Reference](https://pkg.go.dev/badge/github.com/kdomanski/iso9660.svg)](https://pkg.go.dev/github.com/kdomanski/iso9660)
 [![codecov](https://codecov.io/gh/kdomanski/iso9660/branch/master/graph/badge.svg?token=14MJSZYZ24)](https://codecov.io/gh/kdomanski/iso9660)
 
 A package for reading and creating ISO9660
