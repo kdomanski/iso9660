@@ -33,6 +33,12 @@ func UnmarshalInt32LSBMSB(data []byte) (int32, error) {
 	return lsb, nil
 }
 
+// UnmarshalUint32LSBMSB is the same as UnmarshalInt32LSBMSB but returns an unsigned integer
+func UnmarshalUint32LSBMSB(data []byte) (uint32, error) {
+	n, err := UnmarshalInt32LSBMSB(data)
+	return uint32(n), err
+}
+
 // UnmarshalInt16LSBMSB decodes a 16-bit integer in both byte orders, as defined in ECMA-119 7.3.3
 func UnmarshalInt16LSBMSB(data []byte) (int16, error) {
 	if len(data) < 4 {

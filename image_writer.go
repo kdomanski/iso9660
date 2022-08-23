@@ -165,7 +165,6 @@ func manglePath(input string) (string, string) {
 // @param {string} givenPath Path to convert
 //
 // @returns {string} Converted filepath
-//
 func posixifyPath(path string) string {
 	if runtime.GOOS == "windows" {
 		return strings.ReplaceAll(path, "\\", "/")
@@ -297,7 +296,7 @@ func (wc *writeContext) createDEForRoot() (*DirectoryEntry, error) {
 	de := &DirectoryEntry{
 		ExtendedAtributeRecordLength: 0,
 		ExtentLocation:               int32(extentLocation),
-		ExtentLength:                 int32(extentLengthInSectors * sectorSize),
+		ExtentLength:                 uint32(extentLengthInSectors * sectorSize),
 		RecordingDateTime:            wc.timestamp,
 		FileFlags:                    dirFlagDir,
 		FileUnitSize:                 0, // 0 for non-interleaved write
@@ -355,7 +354,7 @@ func (wc *writeContext) scanDirectory(item *itemToWrite, dirPath string, ownEntr
 		de := &DirectoryEntry{
 			ExtendedAtributeRecordLength: 0,
 			ExtentLocation:               int32(extentLocation),
-			ExtentLength:                 int32(extentLength),
+			ExtentLength:                 uint32(extentLength),
 			RecordingDateTime:            wc.timestamp,
 			FileFlags:                    fileFlags,
 			FileUnitSize:                 0, // 0 for non-interleaved write
