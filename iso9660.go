@@ -127,7 +127,7 @@ var _ encoding.BinaryMarshaler = PrimaryVolumeDescriptorBody{}
 type DirectoryEntry struct {
 	ExtendedAtributeRecordLength byte
 	ExtentLocation               int32
-	ExtentLength                 int32
+	ExtentLength                 uint32
 	RecordingDateTime            RecordingTimestamp
 	FileFlags                    byte
 	FileUnitSize                 byte
@@ -155,7 +155,7 @@ func (de *DirectoryEntry) UnmarshalBinary(data []byte) error {
 		return err
 	}
 
-	if de.ExtentLength, err = UnmarshalInt32LSBMSB(data[10:18]); err != nil {
+	if de.ExtentLength, err = UnmarshalUint32LSBMSB(data[10:18]); err != nil {
 		return err
 	}
 
@@ -196,7 +196,7 @@ func (de *DirectoryEntry) MarshalBinary() ([]byte, error) {
 	data[1] = de.ExtendedAtributeRecordLength
 
 	WriteInt32LSBMSB(data[2:10], de.ExtentLocation)
-	WriteInt32LSBMSB(data[10:18], de.ExtentLength)
+	WriteInt32LSBMSB(data[10:18], int32(de.ExtentLength))
 	de.RecordingDateTime.MarshalBinary(data[18:25])
 	data[25] = de.FileFlags
 	data[26] = de.FileUnitSize
