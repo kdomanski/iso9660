@@ -30,6 +30,21 @@ func TestUnmarshallInt32LSBMSB(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestUnmarshallUint32LSBMSB(t *testing.T) {
+	// data OK
+	number, err := UnmarshalUint32LSBMSB([]byte{0x00, 0x5E, 0xD0, 0xB2, 0xB2, 0xD0, 0x5E, 0x00})
+	assert.NoError(t, err)
+	assert.Equal(t, uint32(3000000000), number)
+
+	// data too short
+	_, err = UnmarshalUint32LSBMSB([]byte{0x00, 0x5E, 0xD0, 0xB2, 0xB2, 0xD0, 0x5E})
+	assert.Equal(t, io.ErrUnexpectedEOF, err)
+
+	// endian versions mismatch
+	_, err = UnmarshalUint32LSBMSB([]byte{0x00, 0x5E, 0xD0, 0xB2, 0x00, 0x00, 0x00, 0x00})
+	assert.Error(t, err)
+}
+
 func TestUnmarshallInt16LSBMSB(t *testing.T) {
 	// data OK
 	number, err := UnmarshalInt16LSBMSB([]byte{0x20, 0x4E, 0x4E, 0x20})
