@@ -538,9 +538,6 @@ func writeAll(w io.Writer, itemsToWrite *list.List) error {
 
 // WriteTo writes the image to the given WriterAt
 func (iw *ImageWriter) WriteTo(w io.Writer, volumeIdentifier string) error {
-	buffer := make([]byte, sectorSize)
-	var err error
-
 	now := time.Now()
 
 	wc := writeContext{
@@ -618,7 +615,8 @@ func (iw *ImageWriter) WriteTo(w io.Writer, volumeIdentifier string) error {
 		}
 	}
 
-	if buffer, err = pvd.MarshalBinary(); err != nil {
+	buffer, err := pvd.MarshalBinary()
+	if err != nil {
 		return err
 	}
 	if _, err = w.Write(buffer); err != nil {
