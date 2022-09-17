@@ -162,3 +162,15 @@ func TestWriterAddLocalDirectoryWithFile(t *testing.T) {
 
 	assert.False(t, os.IsNotExist(err))
 }
+
+func TestWriter_DeniedStagingDir(t *testing.T) {
+	w := &ImageWriter{stagingDir: "/usr/access_denied"}
+
+	err := w.AddLocalFile("/etc/hosts", "foo")
+	assert.Error(t, err)
+	assert.True(t, os.IsPermission(err), "err should have been a permission denied directory, but is: %+v", err)
+
+	err = w.AddFile(strings.NewReader("somestring"), "foo")
+	assert.Error(t, err)
+	assert.True(t, os.IsPermission(err), "err should have been a permission denied directory, but is: %+v", err)
+}
