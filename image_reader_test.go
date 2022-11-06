@@ -4,7 +4,7 @@
 package iso9660
 
 import (
-	"io/ioutil"
+	"io"
 	"os"
 	"testing"
 	"time"
@@ -59,7 +59,7 @@ func TestImageReader(t *testing.T) {
 		assert.Equal(t, "LOREM_IP.TXT", loremFile.Name())
 		assert.Equal(t, int64(446), loremFile.Size())
 
-		data, err := ioutil.ReadAll(loremFile.Reader())
+		data, err := io.ReadAll(loremFile.Reader())
 		assert.NoError(t, err)
 
 		assert.Equal(t, loremIpsum, string(data))

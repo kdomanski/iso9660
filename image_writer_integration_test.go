@@ -5,7 +5,6 @@ package iso9660
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -39,7 +38,7 @@ func TestWriterAndMount(t *testing.T) {
 	}
 
 	// write test image
-	f, err := ioutil.TempFile(os.TempDir(), "iso9660_golang_test")
+	f, err := os.CreateTemp(os.TempDir(), "iso9660_golang_test")
 	assert.NoError(t, err)
 	defer os.Remove(f.Name())
 
@@ -51,7 +50,7 @@ func TestWriterAndMount(t *testing.T) {
 	//
 
 	// create mount directory
-	mountDir, err := ioutil.TempDir("", "")
+	mountDir, err := os.MkdirTemp("", "")
 	assert.NoError(t, err)
 	defer func() {
 		if removeErr := os.RemoveAll(mountDir); removeErr != nil {
@@ -71,7 +70,7 @@ func TestWriterAndMount(t *testing.T) {
 			return nil
 		}
 
-		data, err := ioutil.ReadFile(path)
+		data, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
@@ -96,7 +95,7 @@ func TestWriterAndMount(t *testing.T) {
 // Identical to TestWriterAndMount, except it uses
 // AddLocalFile to add an existing file.
 func TestWriterAndMountWithAddLocal(t *testing.T) {
-	sampleData, err := ioutil.ReadFile("/etc/issue")
+	sampleData, err := os.ReadFile("/etc/issue")
 	assert.NoError(t, err)
 
 	//
@@ -120,7 +119,7 @@ func TestWriterAndMountWithAddLocal(t *testing.T) {
 	}
 
 	// write test image
-	f, err := ioutil.TempFile(os.TempDir(), "iso9660_golang_test")
+	f, err := os.CreateTemp(os.TempDir(), "iso9660_golang_test")
 	assert.NoError(t, err)
 	defer os.Remove(f.Name())
 
@@ -132,7 +131,7 @@ func TestWriterAndMountWithAddLocal(t *testing.T) {
 	//
 
 	// create mount directory
-	mountDir, err := ioutil.TempDir("", "")
+	mountDir, err := os.MkdirTemp("", "")
 	assert.NoError(t, err)
 	defer func() {
 		if removeErr := os.RemoveAll(mountDir); removeErr != nil {
@@ -152,7 +151,7 @@ func TestWriterAndMountWithAddLocal(t *testing.T) {
 			return nil
 		}
 
-		data, err := ioutil.ReadFile(path)
+		data, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}

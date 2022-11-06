@@ -4,7 +4,6 @@
 package iso9660
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -80,7 +79,7 @@ func TestWriterStaging(t *testing.T) {
 	err = w.AddFile(r, testFilePath)
 	assert.NoError(t, err)
 
-	readData, err := ioutil.ReadFile(path.Join(w.stagingDir, testFileMangledPath))
+	readData, err := os.ReadFile(path.Join(w.stagingDir, testFileMangledPath))
 	assert.NoError(t, err)
 
 	assert.Equal(t, testFileContents, string(readData))
@@ -98,7 +97,7 @@ func TestWriterAddLocalDirectory(t *testing.T) {
 	err = w.AddLocalDirectory("fixtures/test.iso_source", "foo")
 	assert.NoError(t, err)
 
-	f, err := ioutil.TempFile(os.TempDir(), "iso9660_golang_test")
+	f, err := os.CreateTemp(os.TempDir(), "iso9660_golang_test")
 	assert.NoError(t, err)
 	defer os.Remove(f.Name())
 
@@ -188,4 +187,11 @@ func TestWriter_CleanupInvalid(t *testing.T) {
 	}
 	err = iw.Cleanup()
 	assert.Error(t, err)
+}
+
+func TestWriteContextScanDirectory(t *testing.T) {
+	wc := writeContext{}
+	_, err := wc.scanDirectory(nil, "", nil, nil, 0)
+	// assert.ErrorIs(t, err, )
+	assert.EqualError(t, err, "open : no such file or directory")
 }

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"os"
 	"path"
@@ -38,7 +37,7 @@ type ImageWriter struct {
 // NewWriter creates a new ImageWrite and initializes its temporary staging dir.
 // Cleanup should be called after the ImageWriter is no longer needed.
 func NewWriter() (*ImageWriter, error) {
-	tmp, err := ioutil.TempDir("", "")
+	tmp, err := os.MkdirTemp("", "")
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +239,7 @@ func mangleD1String(input string, maxCharacters int) string {
 // calculateDirChildrenSectors calculates the total mashalled size of all DirectoryEntries
 // within a directory. The size of each entry depends of the length of the filename.
 func calculateDirChildrenSectors(path string) (uint32, error) {
-	contents, err := ioutil.ReadDir(path)
+	contents, err := os.ReadDir(path)
 	if err != nil {
 		return 0, err
 	}
@@ -320,7 +319,7 @@ type itemToWrite struct {
 // scanDirectory reads the directory's contents and adds them to the queue, as well as stores all their DirectoryEntries in the item,
 // because we'll need them to write this item's descriptor.
 func (wc *writeContext) scanDirectory(item *itemToWrite, dirPath string, ownEntry *DirectoryEntry, parentEntery *DirectoryEntry, targetSector uint32) (*list.List, error) {
-	contents, err := ioutil.ReadDir(dirPath)
+	contents, err := os.ReadDir(dirPath)
 	if err != nil {
 		return nil, err
 	}
@@ -341,10 +340,14 @@ func (wc *writeContext) scanDirectory(item *itemToWrite, dirPath string, ownEntr
 			fileFlags = dirFlagDir
 			extentLength = extentLengthInSectors * sectorSize
 		} else {
-			if c.Size() > int64(math.MaxUint32) {
+			fileinfo, err := c.Info()
+			if err != nil {
+				return nil, err
+			}
+			if fileinfo.Size() > int64(math.MaxUint32) {
 				return nil, ErrFileTooLarge
 			}
-			extentLength = uint32(c.Size())
+			extentLength = uint32(fileinfo.Size())
 			extentLengthInSectors = fileLengthToSectors(extentLength)
 
 			fileFlags = 0
