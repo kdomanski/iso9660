@@ -400,6 +400,7 @@ func (vd *volumeDescriptor) UnmarshalBinary(data []byte) error {
 	}
 
 	if err := vd.Header.UnmarshalBinary(data); err != nil {
+		// this should never fail, since volumeDescriptorHeader.UnmarshalBinary( ) only checks data size too
 		return err
 	}
 
