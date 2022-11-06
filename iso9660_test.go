@@ -4,6 +4,7 @@
 package iso9660
 
 import (
+	"io"
 	"os"
 	"testing"
 	"time"
@@ -110,4 +111,100 @@ func TestReadWriteVolumeDescriptorPrimary(t *testing.T) {
 	buffer2, err := vd.MarshalBinary()
 	assert.NoError(t, err)
 	assert.Equal(t, buffer1, buffer2)
+}
+
+func TestIncorrectData(t *testing.T) {
+	t.Run("volumeDescriptorHeader data too short", func(tt *testing.T) {
+		vdh := &volumeDescriptorHeader{}
+		err := vdh.UnmarshalBinary([]byte{0, 0, 0, 0, 0})
+		assert.ErrorIs(tt, err, io.ErrUnexpectedEOF)
+	})
+
+	t.Run("volumeDescriptor data too short", func(tt *testing.T) {
+		vd := &volumeDescriptor{}
+		err := vd.UnmarshalBinary([]byte{0, 0, 0, 0, 0})
+		assert.ErrorIs(tt, err, io.ErrUnexpectedEOF)
+	})
+
+	t.Run("volumeDescriptor has invalid volume type", func(tt *testing.T) {
+		vd := &volumeDescriptor{}
+		data := make([]byte, sectorSize)
+		copy(data[0:6], "XCD001")
+		err := vd.UnmarshalBinary(data)
+		assert.EqualError(tt, err, "unknown volume type 0x58")
+	})
+
+	t.Run("volumeDescriptor has invalid identifier", func(tt *testing.T) {
+		vd := &volumeDescriptor{}
+		data := make([]byte, sectorSize)
+		copy(data[0:6], "\x01ABCDE")
+		err := vd.UnmarshalBinary(data)
+		assert.EqualError(tt, err, "volume descriptor \"ABCDE\" != \"CD001\"")
+	})
+}
+
+func TestUnmarshalInvalidTimestamp(t *testing.T) {
+	t.Run("VolumeDescriptorTimestamp data too short", func(tt *testing.T) {
+		vdt := &VolumeDescriptorTimestamp{}
+		err := vdt.UnmarshalBinary([]byte{0, 0, 0, 0, 0})
+		assert.ErrorIs(tt, err, io.ErrUnexpectedEOF)
+	})
+
+	t.Run("VolumeDescriptorTimestamp year invalid", func(tt *testing.T) {
+		vdt := &VolumeDescriptorTimestamp{}
+		err := vdt.UnmarshalBinary([]byte("YYYYMMDDHHmmsshhX"))
+		assert.EqualError(tt, err, "strconv.Atoi: parsing \"YYYY\": invalid syntax")
+	})
+
+	t.Run("VolumeDescriptorTimestamp month invalid", func(tt *testing.T) {
+		vdt := &VolumeDescriptorTimestamp{}
+		err := vdt.UnmarshalBinary([]byte("2000MMDDHHmmsshhX"))
+		assert.EqualError(tt, err, "strconv.Atoi: parsing \"MM\": invalid syntax")
+	})
+
+	t.Run("VolumeDescriptorTimestamp day invalid", func(tt *testing.T) {
+		vdt := &VolumeDescriptorTimestamp{}
+		err := vdt.UnmarshalBinary([]byte("200001DDHHmmsshhX"))
+		assert.EqualError(tt, err, "strconv.Atoi: parsing \"DD\": invalid syntax")
+	})
+
+	t.Run("VolumeDescriptorTimestamp hour invalid", func(tt *testing.T) {
+		vdt := &VolumeDescriptorTimestamp{}
+		err := vdt.UnmarshalBinary([]byte("20000102HHmmsshhX"))
+		assert.EqualError(tt, err, "strconv.Atoi: parsing \"HH\": invalid syntax")
+	})
+
+	t.Run("VolumeDescriptorTimestamp minutes invalid", func(tt *testing.T) {
+		vdt := &VolumeDescriptorTimestamp{}
+		err := vdt.UnmarshalBinary([]byte("2000010212mmsshhX"))
+		assert.EqualError(tt, err, "strconv.Atoi: parsing \"mm\": invalid syntax")
+	})
+
+	t.Run("VolumeDescriptorTimestamp seconds invalid", func(tt *testing.T) {
+		vdt := &VolumeDescriptorTimestamp{}
+		err := vdt.UnmarshalBinary([]byte("200001021230sshhX"))
+		assert.EqualError(tt, err, "strconv.Atoi: parsing \"ss\": invalid syntax")
+	})
+
+	t.Run("VolumeDescriptorTimestamp hundredths invalid", func(tt *testing.T) {
+		vdt := &VolumeDescriptorTimestamp{}
+		err := vdt.UnmarshalBinary([]byte("20000102123040hhX"))
+		assert.EqualError(tt, err, "strconv.Atoi: parsing \"hh\": invalid syntax")
+	})
+
+	t.Run("VolumeDescriptorTimestamp valid", func(tt *testing.T) {
+		vdt := &VolumeDescriptorTimestamp{}
+		err := vdt.UnmarshalBinary([]byte("2000010212304099\x02"))
+		assert.NoError(tt, err)
+		assert.Equal(t, VolumeDescriptorTimestamp{
+			Year:      2000,
+			Month:     01,
+			Day:       02,
+			Hour:      12,
+			Minute:    30,
+			Second:    40,
+			Hundredth: 99,
+			Offset:    2,
+		}, *vdt)
+	})
 }
