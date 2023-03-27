@@ -174,3 +174,18 @@ func TestWriter_DeniedStagingDir(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, os.IsPermission(err), "err should have been a permission denied directory, but is: %+v", err)
 }
+
+func TestWriter_CleanupInvalid(t *testing.T) {
+	iw := ImageWriter{
+		stagingDir: "",
+	}
+	err := iw.Cleanup()
+	assert.Nil(t, err)
+
+	// The rmdir system call does not permit removing "."
+	iw = ImageWriter{
+		stagingDir: ".",
+	}
+	err = iw.Cleanup()
+	assert.Error(t, err)
+}
