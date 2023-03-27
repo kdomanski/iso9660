@@ -42,6 +42,7 @@ jobs:
       run: sudo go test -v --tags=integration -coverprofile=coverage_integration.txt -covermode=atomic .
 
     - name: Upload coverage to Codecov
+      if: matrix.go == '1.19'
       uses: codecov/codecov-action@v2
       with:
         files: ./coverage_unit.txt,coverage_integration.txt
