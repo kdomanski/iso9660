@@ -126,6 +126,9 @@ func TestImageReaderSUSP(t *testing.T) {
 	rootDir, err := image.RootDir()
 	assert.NoError(t, err)
 
+	_, err = rootDir.GetDotEntry()
+	assert.NoError(t, err)
+
 	children, err := rootDir.GetChildren()
 	assert.NoError(t, err)
 	assert.Len(t, children, 4)
