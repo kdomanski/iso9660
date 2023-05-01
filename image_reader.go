@@ -38,10 +38,9 @@ func (i *Image) readVolumes() error {
 			return err
 		}
 
-		if vd.Primary != nil {
-			// Ignore error if some of the SUSP data is malformed. Just take the valid part.
-			vd.Primary.RootDirectoryEntry.SystemUseEntries, _ = splitSystemUseEntries(vd.Primary.RootDirectoryEntry.SystemUse, i.ra)
-		}
+		// NOTE: the instance of the root Directory Record that appears
+		// in the Primary Volume Descriptor cannot contain a System Use
+		// field. See the SUSP standard.
 
 		i.volumeDescriptors = append(i.volumeDescriptors, vd)
 		if vd.Header.Type == volumeTypeTerminator {
