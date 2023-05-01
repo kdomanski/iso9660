@@ -126,8 +126,16 @@ func TestImageReaderSUSP(t *testing.T) {
 	rootDir, err := image.RootDir()
 	assert.NoError(t, err)
 
-	_, err = rootDir.GetDotEntry()
+	rootDot, err := rootDir.GetDotEntry()
 	assert.NoError(t, err)
+
+	ers, err := rootDot.de.SystemUseEntries.GetExtensionRecords()
+	assert.NoError(t, err)
+
+	if assert.Len(t, ers, 1) {
+		assert.Equal(t, "RRIP_1991A", ers[0].Identifier)
+		assert.Equal(t, 1, ers[0].Version)
+	}
 
 	children, err := rootDir.GetChildren()
 	assert.NoError(t, err)

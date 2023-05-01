@@ -20,6 +20,62 @@ func (e SystemUseEntry) Type() string {
 	return string(e[:2])
 }
 
+type ExtensionRecord struct {
+	Version    int
+	Identifier string
+	Descriptor string
+	Source     string
+}
+
+// See SUSP-112 5.5
+func ExtensionRecordDecode(e SystemUseEntry) (*ExtensionRecord, error) {
+	if e.Type() != "ER" {
+		return nil, fmt.Errorf("wrong type of record, expected ER")
+	}
+	if e.Length() < 8 {
+		return nil, io.ErrUnexpectedEOF
+	}
+
+	identifierLen := int(e[4])
+	if e.Length() < 8+identifierLen {
+		return nil, io.ErrUnexpectedEOF
+	}
+
+	descriptorLen := int(e[5])
+	if e.Length() < 8+identifierLen+descriptorLen {
+		return nil, io.ErrUnexpectedEOF
+	}
+
+	sourceLen := int(e[6])
+	if e.Length() < 8+identifierLen+descriptorLen+sourceLen {
+		return nil, io.ErrUnexpectedEOF
+	}
+
+	return &ExtensionRecord{
+		Version:    int(e[7]),
+		Identifier: string(e[8 : 8+identifierLen]),
+		Descriptor: string(e[8+identifierLen : 8+identifierLen+descriptorLen]),
+		Source:     string(e[8+identifierLen+descriptorLen : 8+identifierLen+descriptorLen+sourceLen]),
+	}, nil
+}
+
+type SystemUseEntrySlice []SystemUseEntry
+
+func (s SystemUseEntrySlice) GetExtensionRecords() ([]*ExtensionRecord, error) {
+	results := make([]*ExtensionRecord, 0)
+	for _, entry := range s {
+		if entry.Type() == "ER" {
+			er, err := ExtensionRecordDecode(entry)
+			if err != nil {
+				return nil, err
+			}
+			results = append(results, er)
+		}
+	}
+
+	return results, nil
+}
+
 // SUSP-112 5.1
 type ContinuationEntry struct {
 	blockLocation uint32
