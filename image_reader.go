@@ -128,9 +128,9 @@ func (f *File) Sys() interface{} {
 	return nil
 }
 
-// GetChildren returns the chilren entries in case of a directory
-// or an error in case of a file
-func (f *File) GetChildren() ([]*File, error) {
+// GetAllChildren returns the children entries in case of a directory
+// or an error in case of a file. It includes the "." and ".." entries.
+func (f *File) GetAllChildren() ([]*File, error) {
 	if !f.IsDir() {
 		return nil, fmt.Errorf("%s is not a directory", f.Name())
 	}
@@ -166,9 +166,6 @@ func (f *File) GetChildren() ([]*File, error) {
 			newDE.SystemUseEntries, _ = splitSystemUseEntries(newDE.SystemUse, f.ra)
 
 			i += entryLength
-			if newDE.Identifier == string([]byte{0}) || newDE.Identifier == string([]byte{1}) {
-				continue
-			}
 
 			newFile := &File{ra: f.ra,
 				de:       newDE,
@@ -180,6 +177,43 @@ func (f *File) GetChildren() ([]*File, error) {
 	}
 
 	return f.children, nil
+}
+
+// GetChildren returns the children entries in case of a directory
+// or an error in case of a file. It does NOT include the "." and ".." entries.
+func (f *File) GetChildren() ([]*File, error) {
+	children, err := f.GetAllChildren()
+	if err != nil {
+		return nil, err
+	}
+
+	filteredChildren := make([]*File, 0, len(children)-2)
+	for _, child := range children {
+		if child.de.Identifier == string([]byte{0}) || child.de.Identifier == string([]byte{1}) {
+			continue
+		}
+
+		filteredChildren = append(filteredChildren, child)
+	}
+
+	return filteredChildren, nil
+}
+
+// GetDotEntry returns the "." entry of a directory
+// or an error in case of a file.
+func (f *File) GetDotEntry() (*File, error) {
+	children, err := f.GetAllChildren()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, child := range children {
+		if child.de.Identifier == string([]byte{0}) {
+			return child, nil
+		}
+	}
+
+	return nil, nil
 }
 
 // Reader returns a reader that allows to read the file's data.
