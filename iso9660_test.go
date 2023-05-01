@@ -126,6 +126,14 @@ func TestIncorrectData(t *testing.T) {
 		assert.ErrorIs(tt, err, io.ErrUnexpectedEOF)
 	})
 
+	t.Run("volumeDescriptor is UDF", func(tt *testing.T) {
+		vd := &volumeDescriptor{}
+		data := make([]byte, sectorSize)
+		copy(data[1:6], []byte(udfIdentifier))
+		err := vd.UnmarshalBinary(data)
+		assert.Equal(tt, ErrUDFNotSupported, err)
+	})
+
 	t.Run("volumeDescriptor has invalid volume type", func(tt *testing.T) {
 		vd := &volumeDescriptor{}
 		data := make([]byte, sectorSize)

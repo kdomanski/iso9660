@@ -19,6 +19,7 @@ const (
 	sectorSize         uint32 = 2048
 	systemAreaSize            = sectorSize * 16
 	standardIdentifier        = "CD001"
+	udfIdentifier             = "BEA01"
 
 	volumeTypeBoot          byte = 0
 	volumeTypePrimary       byte = 1
@@ -47,6 +48,8 @@ const (
 )
 
 var standardIdentifierBytes = [5]byte{'C', 'D', '0', '0', '1'}
+
+var ErrUDFNotSupported = errors.New("UDF volumes are not supported")
 
 // volumeDescriptorHeader represents the data in bytes 0-6
 // of a Volume Descriptor as defined in ECMA-119 8.1
@@ -404,8 +407,12 @@ func (vd *volumeDescriptor) UnmarshalBinary(data []byte) error {
 		return err
 	}
 
-	if string(vd.Header.Identifier[:]) != standardIdentifier {
-		return fmt.Errorf("volume descriptor %q != %q", string(vd.Header.Identifier[:]), standardIdentifier)
+	id := string(vd.Header.Identifier[:])
+	if id != standardIdentifier {
+		if id == udfIdentifier {
+			return ErrUDFNotSupported
+		}
+		return fmt.Errorf("volume descriptor %q != %q", id, standardIdentifier)
 	}
 
 	switch vd.Header.Type {
