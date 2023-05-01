@@ -138,6 +138,7 @@ type DirectoryEntry struct {
 	VolumeSequenceNumber         int16
 	Identifier                   string
 	SystemUse                    []byte
+	SystemUseEntries             []SystemUseEntry
 }
 
 var _ encoding.BinaryUnmarshaler = &DirectoryEntry{}

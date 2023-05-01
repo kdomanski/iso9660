@@ -38,6 +38,11 @@ func (i *Image) readVolumes() error {
 			return err
 		}
 
+		if vd.Primary != nil {
+			// Ignore error if some of the SUSP data is malformed. Just take the valid part.
+			vd.Primary.RootDirectoryEntry.SystemUseEntries, _ = splitSystemUseEntries(vd.Primary.RootDirectoryEntry.SystemUse, i.ra)
+		}
+
 		i.volumeDescriptors = append(i.volumeDescriptors, vd)
 		if vd.Header.Type == volumeTypeTerminator {
 			break
@@ -157,6 +162,10 @@ func (f *File) GetChildren() ([]*File, error) {
 			if err := newDE.UnmarshalBinary(buffer[i : i+entryLength]); err != nil {
 				return nil, err
 			}
+
+			// Ignore error if some of the SUSP data is malformed. Just take the valid part.
+			newDE.SystemUseEntries, _ = splitSystemUseEntries(newDE.SystemUse, f.ra)
+
 			i += entryLength
 			if newDE.Identifier == string([]byte{0}) || newDE.Identifier == string([]byte{1}) {
 				continue
