@@ -113,3 +113,43 @@ func TestImage(t *testing.T) {
 	_, err := imageWithoutDescriptors.RootDir()
 	assert.Error(t, os.ErrNotExist, err)
 }
+
+func TestImageReaderSUSP(t *testing.T) {
+	f, err := os.Open("fixtures/test_rockridge.iso")
+	assert.NoError(t, err)
+	defer f.Close() // nolint: errcheck
+
+	image, err := OpenImage(f)
+	assert.NoError(t, err)
+
+	// root dir
+	rootDir, err := image.RootDir()
+	assert.NoError(t, err)
+
+	children, err := rootDir.GetChildren()
+	assert.NoError(t, err)
+	assert.Len(t, children, 4)
+
+	dir1 := children[1]
+	assert.Equal(t, "DIR1", dir1.Name())
+
+	dir1Children, err := dir1.GetChildren()
+	assert.NoError(t, err)
+	assert.Len(t, dir1Children, 1)
+
+	// lorem ipsum
+	loremFile := dir1Children[0]
+	assert.Equal(t, "LOREM_IP.TXT", loremFile.Name())
+	assert.Equal(t, int64(446), loremFile.Size())
+
+	data, err := io.ReadAll(loremFile.Reader())
+	assert.NoError(t, err)
+
+	assert.Equal(t, loremIpsum, string(data))
+
+	assert.Len(t, loremFile.de.SystemUseEntries, 4)
+	assert.Equal(t, "RR", loremFile.de.SystemUseEntries[0].Type())
+	assert.Equal(t, "NM", loremFile.de.SystemUseEntries[1].Type())
+	assert.Equal(t, "PX", loremFile.de.SystemUseEntries[2].Type())
+	assert.Equal(t, "TF", loremFile.de.SystemUseEntries[3].Type())
+}
