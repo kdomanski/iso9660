@@ -81,3 +81,35 @@ func TestSUCEGarbledData(t *testing.T) {
 	_, err = splitSystemUseEntries(suArea, fr)
 	assert.EqualError(t, err, "splitting Continuation Area: splitting System Use entries: unexpected EOF, expected 120 bytes but have only 64")
 }
+
+func TestDecodeInvalidSUSPER(t *testing.T) {
+	for _, e := range []SystemUseEntry{
+		{'S', 'T', 4, 1}, // not ER
+		{'E', 'R', 4, 1}, // definitely too short
+		{'E', 'R', 8, 1, 3, 0, 0, 0},
+		{'E', 'R', 10, 1, 3, 0, 0, 0, 'F', 'O'},
+		{'E', 'R', 14, 1, 3, 4, 0, 0, 'F', 'O', 'O', 'D', 'E', 'S'},
+		{'E', 'R', 17, 1, 3, 4, 3, 0, 'F', 'O', 'O', 'D', 'E', 'S', 'C', 'S', 'R'},
+	} {
+		_, err := ExtensionRecordDecode(e)
+		assert.Error(t, err)
+	}
+}
+
+func TestDecodeValidSUSPER(t *testing.T) {
+	for _, e := range []SystemUseEntry{
+		{'E', 'R', 8, 1, 0, 0, 0, 0},
+		{'E', 'R', 11, 1, 3, 0, 0, 0, 'F', 'O', 'O'},
+		{'E', 'R', 15, 1, 3, 4, 0, 0, 'F', 'O', 'O', 'D', 'E', 'S', 'C'},
+		{'E', 'R', 18, 1, 3, 4, 3, 0, 'F', 'O', 'O', 'D', 'E', 'S', 'C', 'S', 'R', 'C'},
+	} {
+		_, err := ExtensionRecordDecode(e)
+		assert.NoError(t, err)
+	}
+}
+
+func TestFailToGetSUSPERs(t *testing.T) {
+	slice := SystemUseEntrySlice{{'E', 'R', 4, 1}} // definitely too short
+	_, err := slice.GetExtensionRecords()
+	assert.Error(t, err)
+}
