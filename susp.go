@@ -195,7 +195,8 @@ func splitSystemUseEntries(data []byte, ra io.ReaderAt) ([]SystemUseEntry, error
 }
 
 type SUSPMetadata struct {
-	Offset uint8
+	Offset       uint8
+	HasRockRidge bool
 }
 
 func (sm *SUSPMetadata) Clone() *SUSPMetadata {
@@ -204,6 +205,7 @@ func (sm *SUSPMetadata) Clone() *SUSPMetadata {
 	}
 
 	return &SUSPMetadata{
-		Offset: sm.Offset,
+		Offset:       sm.Offset,
+		HasRockRidge: sm.HasRockRidge,
 	}
 }

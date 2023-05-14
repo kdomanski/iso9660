@@ -175,9 +175,15 @@ func (f *File) GetAllChildren() ([]*File, error) {
 						return nil, fmt.Errorf("invalid SP record: %w", err)
 					}
 
+					hasRockRidge, err := suspHasRockRidge(newDE.SystemUseEntries)
+					if err != nil {
+						return nil, fmt.Errorf("failed to check for Rock Ridge extension: %w", err)
+					}
+
 					// save SUSP offset from the SP record
 					f.susp = &SUSPMetadata{
-						Offset: sprecord.BytesSkipped,
+						Offset:       sprecord.BytesSkipped,
+						HasRockRidge: hasRockRidge,
 					}
 				}
 			} else {
