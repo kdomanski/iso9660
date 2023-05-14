@@ -73,6 +73,10 @@ type File struct {
 
 var _ os.FileInfo = &File{}
 
+func (f *File) hasRockRidge() bool {
+	return f.susp != nil && f.susp.HasRockRidge
+}
+
 // IsDir returns true if the entry is a directory or false otherwise
 func (f *File) IsDir() bool {
 	return f.de.FileFlags&dirFlagDir != 0
@@ -94,6 +98,12 @@ func (f *File) Mode() os.FileMode {
 
 // Name returns the base name of the given entry
 func (f *File) Name() string {
+	if f.hasRockRidge() {
+		if name := f.de.SystemUseEntries.GetRockRidgeName(); name != "" {
+			return name
+		}
+	}
+
 	if f.IsDir() {
 		return f.de.Identifier
 	}

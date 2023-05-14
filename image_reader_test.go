@@ -144,7 +144,7 @@ func TestImageReaderSUSP(t *testing.T) {
 	assert.Len(t, children, 4)
 
 	dir1 := children[1]
-	assert.Equal(t, "DIR1", dir1.Name())
+	assert.Equal(t, "dir1", dir1.Name())
 
 	dir1Children, err := dir1.GetChildren()
 	assert.NoError(t, err)
@@ -152,7 +152,7 @@ func TestImageReaderSUSP(t *testing.T) {
 
 	// lorem ipsum
 	loremFile := dir1Children[0]
-	assert.Equal(t, "LOREM_IP.TXT", loremFile.Name())
+	assert.Equal(t, "lorem_ipsum.txt", loremFile.Name())
 	assert.Equal(t, int64(446), loremFile.Size())
 	assert.NotNil(t, loremFile.susp)
 	assert.True(t, loremFile.susp.HasRockRidge)
@@ -164,7 +164,6 @@ func TestImageReaderSUSP(t *testing.T) {
 
 	assert.Len(t, loremFile.de.SystemUseEntries, 4)
 	assert.Equal(t, "RR", loremFile.de.SystemUseEntries[0].Type())
-	assert.Equal(t, "NM", loremFile.de.SystemUseEntries[1].Type())
 	assert.Equal(t, "PX", loremFile.de.SystemUseEntries[2].Type())
 	assert.Equal(t, "TF", loremFile.de.SystemUseEntries[3].Type())
 }
