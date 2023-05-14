@@ -5,6 +5,15 @@ import (
 	"io"
 )
 
+/* The following types of core SUSP records are being handled in some way:
+ * - [x] CE (SUSP 5.1: continuation)
+ * - [ ] PD (SUSP 5.2: padding)
+ * - [x] SP (SUSP 5.3: offset)
+ * - [ ] ST (SUSP 5.4)
+ * - [x] ER (SUSP 5.5: extension record)
+ * - [ ] ES (SUSP 5.6)
+ */
+
 // SUSP-112 4.1
 type SystemUseEntry []byte
 
