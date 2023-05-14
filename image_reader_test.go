@@ -155,6 +155,7 @@ func TestImageReaderSUSP(t *testing.T) {
 	assert.Equal(t, "LOREM_IP.TXT", loremFile.Name())
 	assert.Equal(t, int64(446), loremFile.Size())
 	assert.NotNil(t, loremFile.susp)
+	assert.True(t, loremFile.susp.HasRockRidge)
 
 	data, err := io.ReadAll(loremFile.Reader())
 	assert.NoError(t, err)
