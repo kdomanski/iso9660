@@ -113,3 +113,15 @@ func TestFailToGetSUSPERs(t *testing.T) {
 	_, err := slice.GetExtensionRecords()
 	assert.Error(t, err)
 }
+
+func TestDecodeInvalidSUSPSP(t *testing.T) {
+	for _, e := range []SystemUseEntry{
+		{'S', 'T', 4, 1},                // not SP
+		{'S', 'P', 4, 1},                // definitely too short
+		{'S', 'P', 7, 1, 0, 0, 0, 0},    // first control byte incorrect
+		{'S', 'P', 7, 1, 0xBE, 0, 0, 0}, // second control byte incorrect
+	} {
+		_, err := SPRecordDecode(e)
+		assert.Error(t, err)
+	}
+}
