@@ -48,6 +48,7 @@ func TestImageReader(t *testing.T) {
 
 	assert.Equal(t, "CICERO.TXT", cicero.Name())
 	assert.Equal(t, int64(845), cicero.Size())
+	assert.Nil(t, cicero.susp) // has no SUSP / RR
 
 	if assert.Equal(t, "DIR1", dir1.Name()) {
 		dir1Children, err := dir1.GetChildren()
@@ -132,6 +133,7 @@ func TestImageReaderSUSP(t *testing.T) {
 	ers, err := rootDot.de.SystemUseEntries.GetExtensionRecords()
 	assert.NoError(t, err)
 
+	// has Rock Ridge
 	if assert.Len(t, ers, 1) {
 		assert.Equal(t, "RRIP_1991A", ers[0].Identifier)
 		assert.Equal(t, 1, ers[0].Version)
@@ -152,6 +154,7 @@ func TestImageReaderSUSP(t *testing.T) {
 	loremFile := dir1Children[0]
 	assert.Equal(t, "LOREM_IP.TXT", loremFile.Name())
 	assert.Equal(t, int64(446), loremFile.Size())
+	assert.NotNil(t, loremFile.susp)
 
 	data, err := io.ReadAll(loremFile.Reader())
 	assert.NoError(t, err)
