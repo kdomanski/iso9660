@@ -41,6 +41,8 @@ func (s SystemUseEntrySlice) GetRockRidgeName() string {
 	var name string
 
 	for _, entry := range s {
+		// There is a continuation flag in the record, but we determine continuation
+		// by simply reading all NM entries.
 		if entry.Type() == "NM" {
 			nm := umarshalRockRidgeNameEntry(entry)
 			name += nm.Name
@@ -51,9 +53,6 @@ func (s SystemUseEntrySlice) GetRockRidgeName() string {
 }
 
 func umarshalRockRidgeNameEntry(e SystemUseEntry) *RockRidgeNameEntry {
-	// There is a continuation flag in byte 0, but we determine continuation
-	// by simply reading all entries.
-
 	return &RockRidgeNameEntry{
 		Flags: e.Data()[0],
 		Name:  string(e.Data()[1:]),
