@@ -59,6 +59,31 @@ func ExtensionRecordDecode(e SystemUseEntry) (*ExtensionRecord, error) {
 	}, nil
 }
 
+// See SUSP-112 5.3
+func SPRecordDecode(e SystemUseEntry) (*SPRecord, error) {
+	if e.Type() != "SP" {
+		return nil, fmt.Errorf("wrong type of record, expected SP")
+	}
+	if e.Length() < 7 {
+		return nil, io.ErrUnexpectedEOF
+	}
+
+	if beByte := e[4]; beByte != 0xBE {
+		return nil, fmt.Errorf("invalid control byte, %x != 0xBE", beByte)
+	}
+	if efByte := e[5]; efByte != 0xEF {
+		return nil, fmt.Errorf("invalid control byte, %x != 0xEF", efByte)
+	}
+
+	return &SPRecord{
+		BytesSkipped: e[6],
+	}, nil
+}
+
+type SPRecord struct {
+	BytesSkipped uint8
+}
+
 type SystemUseEntrySlice []SystemUseEntry
 
 func (s SystemUseEntrySlice) GetExtensionRecords() ([]*ExtensionRecord, error) {
@@ -158,4 +183,18 @@ func splitSystemUseEntries(data []byte, ra io.ReaderAt) ([]SystemUseEntry, error
 	}
 
 	return output, nil
+}
+
+type SUSPMetadata struct {
+	Offset uint8
+}
+
+func (sm *SUSPMetadata) Clone() *SUSPMetadata {
+	if sm == nil {
+		return nil
+	}
+
+	return &SUSPMetadata{
+		Offset: sm.Offset,
+	}
 }

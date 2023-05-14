@@ -56,7 +56,7 @@ func (i *Image) readVolumes() error {
 func (i *Image) RootDir() (*File, error) {
 	for _, vd := range i.volumeDescriptors {
 		if vd.Type() == volumeTypePrimary {
-			return &File{de: vd.Primary.RootDirectoryEntry, ra: i.ra, children: nil}, nil
+			return &File{de: vd.Primary.RootDirectoryEntry, ra: i.ra, children: nil, isRootDir: true}, nil
 		}
 	}
 	return nil, os.ErrNotExist
@@ -64,9 +64,11 @@ func (i *Image) RootDir() (*File, error) {
 
 // File is a os.FileInfo-compatible wrapper around an ISO9660 directory entry
 type File struct {
-	ra       io.ReaderAt
-	de       *DirectoryEntry
-	children []*File
+	ra        io.ReaderAt
+	de        *DirectoryEntry
+	children  []*File
+	isRootDir bool
+	susp      *SUSPMetadata
 }
 
 var _ os.FileInfo = &File{}
@@ -162,14 +164,37 @@ func (f *File) GetAllChildren() ([]*File, error) {
 				return nil, err
 			}
 
-			// Ignore error if some of the SUSP data is malformed. Just take the valid part.
-			newDE.SystemUseEntries, _ = splitSystemUseEntries(newDE.SystemUse, f.ra)
+			// Is this a root directory '.' record?
+			if f.isRootDir && newDE.Identifier == string([]byte{0}) {
+				newDE.SystemUseEntries, _ = splitSystemUseEntries(newDE.SystemUse, f.ra)
+
+				// get the SP record
+				if len(newDE.SystemUseEntries) > 0 && newDE.SystemUseEntries[0].Type() == "SP" {
+					sprecord, err := SPRecordDecode(newDE.SystemUseEntries[0])
+					if err != nil {
+						return nil, fmt.Errorf("invalid SP record: %w", err)
+					}
+
+					// save SUSP offset from the SP record
+					f.susp = &SUSPMetadata{
+						Offset: sprecord.BytesSkipped,
+					}
+				}
+			} else {
+				// are we on a volume with SUSP?
+				if f.susp != nil {
+					// Ignore error if some of the SUSP data is malformed. Just take the valid part.
+					offsetSystemUse := newDE.SystemUse[f.susp.Offset:]
+					newDE.SystemUseEntries, _ = splitSystemUseEntries(offsetSystemUse, f.ra)
+				}
+			}
 
 			i += entryLength
 
 			newFile := &File{ra: f.ra,
 				de:       newDE,
 				children: nil,
+				susp:     f.susp.Clone(),
 			}
 
 			f.children = append(f.children, newFile)
