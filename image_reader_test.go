@@ -30,6 +30,10 @@ func TestImageReader(t *testing.T) {
 		assert.Equal(t, volumeTypeTerminator, image.volumeDescriptors[1].Header.Type)
 	}
 
+	label, err := image.Label()
+	assert.NoError(t, err)
+	assert.Equal(t, "my-vol-id", label)
+
 	rootDir, err := image.RootDir()
 	assert.NoError(t, err)
 	assert.True(t, rootDir.IsDir())
