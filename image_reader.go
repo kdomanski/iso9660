@@ -62,6 +62,16 @@ func (i *Image) RootDir() (*File, error) {
 	return nil, os.ErrNotExist
 }
 
+// RootDir returns the label of the first Primary Volume
+func (i *Image) Label() (string, error) {
+	for _, vd := range i.volumeDescriptors {
+		if vd.Type() == volumeTypePrimary {
+			return string(vd.Primary.VolumeIdentifier), nil
+		}
+	}
+	return "", os.ErrNotExist
+}
+
 // File is a os.FileInfo-compatible wrapper around an ISO9660 directory entry
 type File struct {
 	ra        io.ReaderAt
