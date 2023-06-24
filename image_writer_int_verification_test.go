@@ -1,5 +1,5 @@
-//go:build integration && !integration_create
-// +build integration,!integration_create
+//go:build integration_verify
+// +build integration_verify
 
 package iso9660
 
@@ -13,37 +13,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestWriterAndMountWithAddLocal(t *testing.T) {
-	sampleData, err := os.ReadFile("/etc/issue")
-	assert.NoError(t, err)
-
-	//
-	// Image creation
-	//
-
-	// create a new image writer and prepare for cleanup
-	w, err := NewWriter()
-	assert.NoError(t, err)
-	defer func() {
-		if cleanupErr := w.Cleanup(); cleanupErr != nil {
-			t.Fatalf("failed to cleanup writer: %v", cleanupErr)
-		}
-	}()
-
-	// add 1000 files to thoroughly test descriptor writing over sector bounds
-	for i := 0; i < 1000; i++ {
-		path := fmt.Sprintf("firstlevel/dir%d/thirdlevel/file%d.txt", i, i)
-		err = w.AddLocalFile("/etc/issue", path)
-		assert.NoError(t, err)
+// Identical to TestWriterAndMountWithAddLocal, except it uses
+// AddFile to add files with a constant string in them.
+func TestWriterVerify(t *testing.T) {
+	writerTestImagePath := os.Getenv("ISO_WRITER_TEST_IMAGE")
+	if !assert.NotEmpty(t, writerTestImagePath) {
+		t.FailNow()
 	}
-
-	// write test image
-	f, err := os.CreateTemp(os.TempDir(), "iso9660_golang_test")
-	assert.NoError(t, err)
-	defer os.Remove(f.Name())
-
-	err = w.WriteTo(f, "testvolume")
-	assert.NoError(t, err)
 
 	//
 	// Image mounting
@@ -59,7 +35,7 @@ func TestWriterAndMountWithAddLocal(t *testing.T) {
 	}()
 
 	// execute mount
-	mountCmd := exec.Command("mount", "-t", "iso9660", f.Name(), mountDir)
+	mountCmd := exec.Command("mount", "-t", "iso9660", writerTestImagePath, mountDir)
 	output, err := mountCmd.CombinedOutput()
 	assert.NoError(t, err, "failed to mount the ISO image: %v\n%s", err, string(output))
 
@@ -75,7 +51,7 @@ func TestWriterAndMountWithAddLocal(t *testing.T) {
 			return err
 		}
 
-		if string(data) != string(sampleData) {
+		if string(data) != "hrh2309hr320h" {
 			return fmt.Errorf("file %q has the wrong contents", path)
 		}
 

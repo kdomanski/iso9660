@@ -40,9 +40,60 @@ jobs:
     - name: Integration test
       # The test need sudo to be able to mount/umount
       run: sudo go test -v --tags=integration -coverprofile=coverage_integration.txt -covermode=atomic .
+      env:
+        ISO_WRITER_TEST_IMAGE: /tmp/writer_test
 
     - name: Upload coverage to Codecov
       if: matrix.go == '1.20'
       uses: codecov/codecov-action@v2
       with:
-        files: ./coverage_unit.txt,coverage_integration.txt
+        files: coverage_unit.txt,coverage_integration.txt
+
+  test_create:
+    name: Writer integration test - creation
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set up Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.20
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v1
+    - name: Create image
+      run: go test -v --tags=integration,integration_create -coverprofile=coverage_integration_create.txt -covermode=atomic .
+      env:
+        ISO_WRITER_TEST_IMAGE: /tmp/writer_test.iso
+    - name: Save created
+      uses: actions/upload-artifact@v3
+      with:
+        path: /tmp/writer_test.iso
+        name: writer_test.iso
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2
+      with:
+        files: coverage_integration_create.txt
+
+  test_verify:
+    name: Writer integration test - verification
+    runs-on: ubuntu-latest
+    needs: test_create
+    steps:
+    - name: Set up Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: 1.20
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v1
+    - name: Download a single artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: writer_test_${{ matrix.os }}.iso
+    - name: Integration test - verify image
+      # The test need sudo to be able to mount/umount
+      run: sudo ISO_WRITER_TEST_IMAGE=${ISO_WRITER_TEST_IMAGE} go test -v --tags=integration,integration_verify -coverprofile=coverage_integration_verify.txt -covermode=atomic .
+      env:
+        ISO_WRITER_TEST_IMAGE: writer_test.iso
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2
+      with:
+        files: coverage_integration_verify.txt
