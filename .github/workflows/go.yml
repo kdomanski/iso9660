@@ -63,7 +63,7 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v1
     - name: Create image
-      run: go test -v --tags=integration,integration_create -coverprofile=coverage_integration_create.txt -covermode=atomic .
+      run: go test -v --tags=integration,integration_create --coverprofile=coverage_integration_create.txt --covermode=atomic .
       env:
         ISO_WRITER_TEST_IMAGE: ${{ runner.temp }}/writer_test.iso
     - name: Save created
