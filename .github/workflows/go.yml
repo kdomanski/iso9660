@@ -51,7 +51,10 @@ jobs:
 
   test_create:
     name: Writer integration test - creation
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
     - name: Set up Go
       uses: actions/setup-go@v1
@@ -62,12 +65,12 @@ jobs:
     - name: Create image
       run: go test -v --tags=integration,integration_create -coverprofile=coverage_integration_create.txt -covermode=atomic .
       env:
-        ISO_WRITER_TEST_IMAGE: /tmp/writer_test.iso
+        ISO_WRITER_TEST_IMAGE: ${{ runner.temp }}/writer_test.iso
     - name: Save created
       uses: actions/upload-artifact@v3
       with:
-        path: /tmp/writer_test.iso
-        name: writer_test.iso
+        path: ${{ runner.temp }}/writer_test.iso
+        name: writer_test_${{ matrix.os }}.iso
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v2
       with:
@@ -76,6 +79,9 @@ jobs:
   test_verify:
     name: Writer integration test - verification
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     needs: test_create
     steps:
     - name: Set up Go
