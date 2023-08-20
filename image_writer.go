@@ -79,8 +79,25 @@ func (iw *ImageWriter) AddFile(data io.Reader, filePath string) error {
 	return err
 }
 
+func failIfSymlink(path string) error {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return err
+	}
+
+	if info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("%q is a symlink - these are not yet supported", path)
+	}
+
+	return nil
+}
+
 // AddLocalFile adds a file identified by its path to the ImageWriter's staging area.
 func (iw *ImageWriter) AddLocalFile(origin, target string) error {
+	if err := failIfSymlink(origin); err != nil {
+		return err
+	}
+
 	directoryPath, fileName := manglePath(target)
 
 	if err := os.MkdirAll(path.Join(iw.stagingDir, directoryPath), 0755); err != nil {

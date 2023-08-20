@@ -174,6 +174,29 @@ func TestWriter_DeniedStagingDir(t *testing.T) {
 	assert.True(t, os.IsPermission(err), "err should have been a permission denied directory, but is: %+v", err)
 }
 
+func TestWriter_AddSymlink(t *testing.T) {
+	w, err := NewWriter()
+	assert.NoError(t, err)
+	defer func() {
+		if cleanupErr := w.Cleanup(); cleanupErr != nil {
+			t.Fatalf("failed to cleanup writer: %v", cleanupErr)
+		}
+	}()
+
+	tmpdir, err := os.MkdirTemp("", "iso9660_golang_test")
+	assert.NoError(t, err)
+	defer func() {
+		os.RemoveAll(tmpdir) // nolint: errcheck
+	}()
+
+	symlinkPath := path.Join(tmpdir, "symlink")
+	err = os.Symlink("/etc/hosts", symlinkPath)
+	assert.NoError(t, err)
+
+	err = w.AddLocalFile(symlinkPath, "foo")
+	assert.ErrorContains(t, err, " is a symlink - these are not yet supported")
+}
+
 func TestWriter_CleanupInvalid(t *testing.T) {
 	iw := ImageWriter{
 		stagingDir: "",
