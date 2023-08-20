@@ -148,6 +148,11 @@ func TestImageReaderSUSP(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, children, 5)
 
+	// symlink
+	symlink := children[4]
+	assert.Equal(t, "this-is-a-symlink", symlink.Name())
+	assert.Equal(t, os.ModeSymlink, symlink.Mode()&os.ModeSymlink)
+
 	dir1 := children[1]
 	assert.Equal(t, "dir1", dir1.Name())
 

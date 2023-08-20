@@ -3,6 +3,7 @@ package iso9660
 import (
 	"fmt"
 	"io/fs"
+	"os"
 )
 
 /* The following types of Rock Ridge records are being handled in some way:
@@ -74,7 +75,14 @@ func umarshalRockRidgeAttrEntry(e SystemUseEntry) (fs.FileMode, error) {
 		return 0, fmt.Errorf("unmarshall RR PX entry: %w", err)
 	}
 
+	S_IFLNK := (rrMode & 0170000) == 0120000
+
 	mode := rrMode & uint32(fs.ModePerm) // UNIX permissions
+
+	if S_IFLNK {
+		mode |= uint32(os.ModeSymlink)
+	}
+
 	return fs.FileMode(mode), nil
 }
 
