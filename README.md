@@ -5,7 +5,10 @@
 
 A package for reading and creating ISO9660
 
-Joliet and Rock Ridge extensions are **NOT** supported.
+Joliet extension is **NOT** supported.
+
+Experimental support for reading Rock Ridge extension is currently in the works.
+If you are experiencing issues, please use the v0.3 release, which ignores Rock Ridge.
 
 ## References for the format:
 - [ECMA-119 1st edition (December 1986)](https://www.ecma-international.org/wp-content/uploads/ECMA-119_1st_edition_december_1986.pdf) ([Web Archive link](http://web.archive.org/web/20210122025258/https://www.ecma-international.org/wp-content/uploads/ECMA-119_1st_edition_december_1986.pdf))
