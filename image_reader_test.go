@@ -5,6 +5,7 @@ package iso9660
 
 import (
 	"io"
+	"io/fs"
 	"os"
 	"testing"
 	"time"
@@ -158,6 +159,7 @@ func TestImageReaderSUSP(t *testing.T) {
 	loremFile := dir1Children[0]
 	assert.Equal(t, "lorem_ipsum.txt", loremFile.Name())
 	assert.Equal(t, int64(446), loremFile.Size())
+	assert.Equal(t, fs.FileMode(0640), loremFile.Mode().Perm(), "expected mode %o, got %o", 0640, loremFile.Mode().Perm())
 	assert.NotNil(t, loremFile.susp)
 	assert.True(t, loremFile.susp.HasRockRidge)
 

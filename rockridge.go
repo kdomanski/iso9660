@@ -1,10 +1,15 @@
 package iso9660
 
+import (
+	"fmt"
+	"io/fs"
+)
+
 /* The following types of Rock Ridge records are being handled in some way:
- * - [ ] PX (RR 4.1.1: POSIX file attributes)
+ * - [X] PX (RR 4.1.1: POSIX file attributes)
  * - [ ] PN (RR 4.1.2: POSIX device number)
  * - [ ] SL (RR 4.1.3: symbolic link)
- * - [ ] NM (RR 4.1.4: alternate name)
+ * - [x] NM (RR 4.1.4: alternate name)
  * - [ ] CL (RR 4.1.5.1: child link)
  * - [ ] PL (RR 4.1.5.2: parent link)
  * - [ ] RE (RR 4.1.5.3: relocated directory)
@@ -50,6 +55,27 @@ func (s SystemUseEntrySlice) GetRockRidgeName() string {
 	}
 
 	return name
+}
+
+func (s SystemUseEntrySlice) GetPosixAttr() (fs.FileMode, error) {
+	for _, entry := range s {
+		if entry.Type() == "PX" {
+			// BUG(kdomanski): If there are multiple RR PX entries (which is forbidden by the spec), the reader will use the first one.
+			return umarshalRockRidgeAttrEntry(entry)
+		}
+	}
+
+	return 0, fmt.Errorf("mandatory entry PX not found")
+}
+
+func umarshalRockRidgeAttrEntry(e SystemUseEntry) (fs.FileMode, error) {
+	rrMode, err := UnmarshalUint32LSBMSB(e.Data()[0:8])
+	if err != nil {
+		return 0, fmt.Errorf("unmarshall RR PX entry: %w", err)
+	}
+
+	mode := rrMode & uint32(fs.ModePerm) // UNIX permissions
+	return fs.FileMode(mode), nil
 }
 
 func umarshalRockRidgeNameEntry(e SystemUseEntry) *RockRidgeNameEntry {

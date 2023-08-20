@@ -97,8 +97,15 @@ func (f *File) ModTime() time.Time {
 	return time.Time(f.de.RecordingDateTime)
 }
 
-// Mode returns os.FileMode flag set with the os.ModeDir flag enabled in case of directories
+// Mode returns file mode when available.
+// Otherwise it returns os.FileMode flag set with the os.ModeDir flag enabled in case of directories.
 func (f *File) Mode() os.FileMode {
+	if f.hasRockRidge() {
+		if mode, err := f.de.SystemUseEntries.GetPosixAttr(); err == nil {
+			return mode
+		}
+	}
+
 	var mode os.FileMode
 	if f.IsDir() {
 		mode |= os.ModeDir
