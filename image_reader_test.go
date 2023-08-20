@@ -145,7 +145,7 @@ func TestImageReaderSUSP(t *testing.T) {
 
 	children, err := rootDir.GetChildren()
 	assert.NoError(t, err)
-	assert.Len(t, children, 4)
+	assert.Len(t, children, 5)
 
 	dir1 := children[1]
 	assert.Equal(t, "dir1", dir1.Name())
