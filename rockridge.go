@@ -76,11 +76,16 @@ func umarshalRockRidgeAttrEntry(e SystemUseEntry) (fs.FileMode, error) {
 	}
 
 	S_IFLNK := (rrMode & 0170000) == 0120000
+	S_IFDIR := (rrMode & 0170000) == 0040000
 
 	mode := rrMode & uint32(fs.ModePerm) // UNIX permissions
 
 	if S_IFLNK {
 		mode |= uint32(os.ModeSymlink)
+	}
+
+	if S_IFDIR {
+		mode |= uint32(os.ModeDir)
 	}
 
 	return fs.FileMode(mode), nil

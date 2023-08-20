@@ -89,6 +89,12 @@ func (f *File) hasRockRidge() bool {
 
 // IsDir returns true if the entry is a directory or false otherwise
 func (f *File) IsDir() bool {
+	if f.hasRockRidge() {
+		if mode, err := f.de.SystemUseEntries.GetPosixAttr(); err == nil {
+			return mode&os.ModeDir != 0
+		}
+	}
+
 	return f.de.FileFlags&dirFlagDir != 0
 }
 
