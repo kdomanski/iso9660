@@ -179,7 +179,7 @@ func (f *File) GetAllChildren() ([]*File, error) {
 	buffer := make([]byte, sectorSize)
 	for bytesProcessed := uint32(0); bytesProcessed < uint32(f.de.ExtentLength); bytesProcessed += sectorSize {
 		if _, err := f.ra.ReadAt(buffer, int64(baseOffset+bytesProcessed)); err != nil {
-			return nil, nil
+			return nil, err
 		}
 
 		for i := uint32(0); i < sectorSize; {
@@ -238,6 +238,9 @@ func (f *File) GetAllChildren() ([]*File, error) {
 
 			f.children = append(f.children, newFile)
 		}
+	}
+	if f.children == nil {
+		return nil, fmt.Errorf("no children found")
 	}
 
 	return f.children, nil
