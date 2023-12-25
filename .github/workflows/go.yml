@@ -40,9 +40,20 @@ jobs:
     - name: Integration test
       # The test need sudo to be able to mount/umount
       run: sudo go test -v --tags=integration -coverprofile=coverage_integration.txt -covermode=atomic .
+      env:
+        ISO_WRITER_TEST_IMAGE: /tmp/writer_test
 
     - name: Upload coverage to Codecov
       if: matrix.go == '1.21'
       uses: codecov/codecov-action@v2
       with:
-        files: ./coverage_unit.txt,coverage_integration.txt
+        files: coverage_unit.txt,coverage_integration.txt
+
+  writer_integration_test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    uses: ./.github/workflows/writer_test.yml
+    with:
+      os: ${{ matrix.os }}
+      go: 1.20
