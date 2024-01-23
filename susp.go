@@ -164,6 +164,8 @@ func splitSystemUseEntries(data []byte, ra io.ReaderAt) ([]SystemUseEntry, error
 		entryLen := int(data[2])
 		if len(data) < entryLen {
 			return nil, fmt.Errorf("splitting System Use entries: %w, expected %d bytes but have only %d", io.ErrUnexpectedEOF, entryLen, len(data))
+		} else if entryLen < 3 {
+			return output, nil
 		}
 
 		entry := SystemUseEntry(data[:entryLen])
