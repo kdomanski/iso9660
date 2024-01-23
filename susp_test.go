@@ -37,6 +37,11 @@ func TestEmptySU(t *testing.T) {
 	entries, err = splitSystemUseEntries(nil, ra)
 	assert.NoError(t, err)
 	assert.Len(t, entries, 0)
+
+	// CD-XA System Use Information
+	entries, err = splitSystemUseEntries([]byte{0, 0, 0, 0, 141, 85, 88, 65, 0, 0, 0, 0, 0, 0}, ra)
+	assert.NoError(t, err)
+	assert.Len(t, entries, 0)
 }
 
 func TestSUTooShort(t *testing.T) {
